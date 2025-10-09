@@ -1,0 +1,261 @@
+.app-card {
+  background: var(--surface);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.app-card:hover {
+  box-shadow: 0 4px 16px var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.app-card.approved {
+  border-color: var(--success);
+}
+
+.app-card.unapproved {
+  border-color: var(--warning);
+}
+
+.app-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--gradient-card);
+}
+
+.app-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.app-title svg {
+  color: var(--primary-color);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.app-title h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-type-badge {
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  background: var(--badge-databricks-bg);
+  color: var(--badge-databricks-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.app-state {
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  align-self: flex-start;
+  white-space: nowrap;
+}
+
+.app-state.state-running {
+  background: var(--state-running-bg);
+  color: var(--state-running-text);
+}
+
+.app-state.state-stopped {
+  background: var(--state-stopped-bg);
+  color: var(--state-stopped-text);
+}
+
+.app-state.state-unknown {
+  background: var(--state-unknown-bg);
+  color: var(--state-unknown-text);
+}
+
+.app-card-body {
+  padding: 1.5rem;
+}
+
+.app-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.app-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.app-info-row:last-child {
+  border-bottom: none;
+}
+
+.app-info-row svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.app-info-row span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.approval-details {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.approval-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+.approval-detail-row svg {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.approval-detail-row strong {
+  color: var(--success-text);
+  font-weight: 600;
+  min-width: 120px;
+}
+
+.approval-detail-row span {
+  color: var(--text-primary);
+}
+
+.revoke-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  color: var(--error);
+  border: 2px solid var(--error);
+  border-radius: var(--border-radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.revoke-button:hover {
+  background: var(--error);
+  color: white;
+}
+
+.unapproved-section {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.unapproved-section p {
+  color: var(--warning-text);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.unapproved-section p svg {
+  flex-shrink: 0;
+  color: var(--warning-text);
+}
+
+.unapproved-section p strong {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.approve-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--button-success-bg);
+  color: var(--button-success-text);
+  border-radius: var(--border-radius-md);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all var(--transition-normal);
+}
+
+.approve-button:hover {
+  background: var(--button-success-hover);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.approve-button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .app-card-header {
+    padding: 1rem;
+  }
+
+  .app-card-body {
+    padding: 1rem;
+  }
+
+  .app-title {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .app-type-badge {
+    align-self: flex-start;
+  }
+
+  .approval-details, .unapproved-section {
+    padding: 1rem;
+  }
+
+  .approve-button, .revoke-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

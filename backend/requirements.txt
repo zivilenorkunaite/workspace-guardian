@@ -1,0 +1,29 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.6.0
+pydantic-settings==2.1.0
+
+# Databricks
+databricks-sdk==0.23.0
+delta-spark==3.1.0
+
+# Database and data processing
+pyspark==3.5.1
+pandas==2.2.0
+pyarrow==15.0.0
+
+# HTTP client
+httpx==0.26.0
+requests==2.31.0
+
+# CORS
+python-multipart==0.0.6
+
+# Authentication
+python-jose[cryptography]==3.3.0
+
+# Date handling
+python-dateutil==2.8.2
+
+
