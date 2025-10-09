@@ -36,10 +36,10 @@ class DeltaManager:
         self.schema = schema or os.getenv("APP_SCHEMA", "workspace_guardian")
         
         # Define application tables
-        self.approved_apps_table = f"{self.catalog}.{self.schema}.approved_apps"
+        self.approved_resources_table = f"{self.catalog}.{self.schema}.approved_resources"
         
         logger.info(f"🏗️  Initializing workspace guardian schema: {self.catalog}.{self.schema}")
-        logger.info(f"📊 Main table: {self.approved_apps_table}")
+        logger.info(f"📊 Main table: {self.approved_resources_table}")
         
         # Initialize Databricks client for SQL execution
         try:
@@ -384,18 +384,18 @@ class DeltaManager:
                 logger.warning(f"Could not create schema: {e}")
             
             # Check if table exists
-            table_exists = self.spark.catalog.tableExists(self.approved_apps_table)
+            table_exists = self.spark.catalog.tableExists(self.approved_resources_table)
             
             if table_exists:
-                logger.info(f"Unity Catalog table exists: {self.approved_apps_table}")
+                logger.info(f"Unity Catalog table exists: {self.approved_resources_table}")
             else:
                 # Create table using SQL
-                logger.info(f"Creating Unity Catalog table: {self.approved_apps_table}")
+                logger.info(f"Creating Unity Catalog table: {self.approved_resources_table}")
                 
                 create_table_sql = f"""
-                CREATE TABLE IF NOT EXISTS {self.approved_apps_table} (
+                CREATE TABLE IF NOT EXISTS {self.approved_resources_table} (
                     app_name STRING COMMENT 'Name of the application',
-                    app_id STRING COMMENT 'Unique application identifier',
+                    resource_id STRING COMMENT 'Unique resource identifier',
                     workspace_id STRING COMMENT 'Databricks workspace ID',
                     workspace_name STRING COMMENT 'Workspace display name',
                     app_creator STRING COMMENT 'User who created the app',
@@ -414,12 +414,12 @@ class DeltaManager:
                 """
                 
                 self.spark.sql(create_table_sql)
-                logger.info(f"Unity Catalog table created successfully: {self.approved_apps_table}")
+                logger.info(f"Unity Catalog table created successfully: {self.approved_resources_table}")
         except Exception as e:
             logger.error(f"Error initializing Unity Catalog table: {e}")
             raise
     
-    def get_approved_apps(self, workspace_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_approved_resources(self, workspace_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get all approved apps, optionally filtered by workspace.
         
@@ -437,7 +437,7 @@ class DeltaManager:
             
             try:
                 # Get apps where is_approved=true AND revoked_date IS NULL
-                sql = f"SELECT * FROM {self.approved_apps_table} WHERE is_approved = true AND revoked_date IS NULL"
+                sql = f"SELECT * FROM {self.approved_resources_table} WHERE is_approved = true AND revoked_date IS NULL"
                 if workspace_id:
                     sql += f" AND workspace_id = '{workspace_id}'"
                 
@@ -450,7 +450,7 @@ class DeltaManager:
                 for row in results:
                     apps.append({
                         "app_name": row.get("app_name"),
-                        "app_id": row.get("app_id"),
+                        "resource_id": row.get("resource_id"),
                         "workspace_id": row.get("workspace_id"),
                         "workspace_name": row.get("workspace_name"),
                         "app_creator": row.get("app_creator"),
@@ -472,7 +472,7 @@ class DeltaManager:
                 return []
             
         try:
-            df = self.spark.table(self.approved_apps_table)
+            df = self.spark.table(self.approved_resources_table)
             
             if workspace_id:
                 df = df.filter(col("workspace_id") == workspace_id)
@@ -483,7 +483,7 @@ class DeltaManager:
             logger.error(f"Error reading approved apps: {e}")
             return []
     
-    def approve_app(self, approval_data: Dict[str, Any]) -> bool:
+    def approve_resource(self, approval_data: Dict[str, Any]) -> bool:
         """
         Add or update an app approval.
         
@@ -499,7 +499,7 @@ class DeltaManager:
         # Prepare data
         data = {
             "app_name": approval_data["app_name"],
-            "app_id": approval_data["app_id"],
+            "resource_id": approval_data["resource_id"],
             "workspace_id": approval_data["workspace_id"],
             "workspace_name": approval_data["workspace_name"],
             "app_creator": approval_data["app_creator"],
@@ -513,8 +513,8 @@ class DeltaManager:
             "updated_at": datetime.now(timezone.utc)
         }
         
-        logger.info(f"🔵 Prepared data: app_id={data['app_id']}, workspace_id={data['workspace_id']}")
-        logger.info(f"🔵 Approved apps table: {self.approved_apps_table}")
+        logger.info(f"🔵 Prepared data: resource_id={data['resource_id']}, workspace_id={data['workspace_id']}")
+        logger.info(f"🔵 Approved apps table: {self.approved_resources_table}")
         
         if not SPARK_AVAILABLE or self.spark is None:
             logger.info(f"🔵 Using Databricks SQL API (Spark not available)")
@@ -548,11 +548,11 @@ class DeltaManager:
                 
                 # Use MERGE for upsert
                 merge_sql = f"""
-                MERGE INTO {self.approved_apps_table} AS target
+                MERGE INTO {self.approved_resources_table} AS target
                 USING (
                     SELECT 
                         '{data["app_name"]}' as app_name,
-                        '{data["app_id"]}' as app_id,
+                        '{data["resource_id"]}' as resource_id,
                         '{data["workspace_id"]}' as workspace_id,
                         '{data["workspace_name"]}' as workspace_name,
                         '{data["app_creator"]}' as app_creator,
@@ -566,7 +566,7 @@ class DeltaManager:
                         NULL as revoked_reason,
                         TIMESTAMP '{updated_at_str}' as updated_at
                 ) AS source
-                ON target.app_id = source.app_id AND target.workspace_id = source.workspace_id
+                ON target.resource_id = source.resource_id AND target.workspace_id = source.workspace_id
                 WHEN MATCHED THEN UPDATE SET *
                 WHEN NOT MATCHED THEN INSERT *
                 """
@@ -594,9 +594,9 @@ class DeltaManager:
             
             # Use Delta MERGE for upsert operation
             merge_sql = f"""
-                MERGE INTO {self.approved_apps_table} AS target
+                MERGE INTO {self.approved_resources_table} AS target
                 USING new_approval AS source
-                ON target.app_id = source.app_id AND target.workspace_id = source.workspace_id
+                ON target.resource_id = source.resource_id AND target.workspace_id = source.workspace_id
                 WHEN MATCHED THEN UPDATE SET *
                 WHEN NOT MATCHED THEN INSERT *
             """
@@ -608,12 +608,12 @@ class DeltaManager:
             logger.error(f"Error approving app: {e}")
             return False
     
-    def revoke_approval(self, app_id: str, workspace_id: str, revoked_by: str, revoked_reason: str) -> bool:
+    def revoke_approval(self, resource_id: str, workspace_id: str, revoked_by: str, revoked_reason: str) -> bool:
         """
         Revoke an app approval (marks as not approved but keeps in table).
         
         Args:
-            app_id: ID of the app
+            resource_id: ID of the app
             workspace_id: ID of the workspace
             revoked_by: User who revoked the approval
             revoked_reason: Reason for revocation
@@ -632,18 +632,18 @@ class DeltaManager:
                 # Escape single quotes in reason
                 escaped_reason = revoked_reason.replace("'", "''")
                 update_sql = f"""
-                    UPDATE {self.approved_apps_table}
+                    UPDATE {self.approved_resources_table}
                     SET 
                         is_approved = FALSE,
                         revoked_date = TIMESTAMP '{revoked_timestamp}',
                         revoked_by = '{revoked_by}',
                         revoked_reason = '{escaped_reason}',
                         updated_at = CURRENT_TIMESTAMP()
-                    WHERE app_id = '{app_id}' AND workspace_id = '{workspace_id}'
+                    WHERE resource_id = '{resource_id}' AND workspace_id = '{workspace_id}'
                 """
                 
                 self._execute_sql(update_sql)
-                logger.info(f"Revoked approval for app {app_id} via SQL API")
+                logger.info(f"Revoked approval for app {resource_id} via SQL API")
                 return True
             except Exception as e:
                 logger.error(f"Error revoking approval via SQL API: {e}")
@@ -654,13 +654,13 @@ class DeltaManager:
             # Check if approval exists
             check_sql = f"""
                 SELECT COUNT(*) as count 
-                FROM {self.approved_apps_table}
-                WHERE app_id = '{app_id}' AND workspace_id = '{workspace_id}'
+                FROM {self.approved_resources_table}
+                WHERE resource_id = '{resource_id}' AND workspace_id = '{workspace_id}'
             """
             count = self.spark.sql(check_sql).first()['count']
             
             if count == 0:
-                logger.warning(f"No approval found for app {app_id} in workspace {workspace_id}")
+                logger.warning(f"No approval found for app {resource_id} in workspace {workspace_id}")
                 return False
             
             # Update using SQL for atomic operation
@@ -668,30 +668,30 @@ class DeltaManager:
             # Escape single quotes in reason
             escaped_reason = revoked_reason.replace("'", "''")
             update_sql = f"""
-                    UPDATE {self.approved_apps_table}
+                    UPDATE {self.approved_resources_table}
                 SET 
                     is_approved = FALSE,
                     revoked_date = TIMESTAMP '{revoked_timestamp.strftime('%Y-%m-%d %H:%M:%S')}',
                     revoked_by = '{revoked_by}',
                     revoked_reason = '{escaped_reason}',
                     updated_at = CURRENT_TIMESTAMP()
-                WHERE app_id = '{app_id}' AND workspace_id = '{workspace_id}'
+                WHERE resource_id = '{resource_id}' AND workspace_id = '{workspace_id}'
             """
             
             self.spark.sql(update_sql)
-            logger.info(f"Revoked approval for app {app_id} in workspace {workspace_id}")
+            logger.info(f"Revoked approval for app {resource_id} in workspace {workspace_id}")
             return True
             
         except Exception as e:
             logger.error(f"Error revoking approval: {e}")
             return False
     
-    def is_app_approved(self, app_id: str, workspace_id: str) -> tuple[bool, Optional[Dict[str, Any]]]:
+    def is_resource_approved(self, resource_id: str, workspace_id: str) -> tuple[bool, Optional[Dict[str, Any]]]:
         """
         Check if an app is approved and get approval details.
         
         Args:
-            app_id: ID of the app
+            resource_id: ID of the app
             workspace_id: ID of the workspace
             
         Returns:
@@ -702,10 +702,10 @@ class DeltaManager:
             return False, None
             
         try:
-            df = self.spark.table(self.approved_apps_table)
+            df = self.spark.table(self.approved_resources_table)
             
             approval = df.filter(
-                (col("app_id") == app_id) & 
+                (col("resource_id") == resource_id) & 
                 (col("workspace_id") == workspace_id) & 
                 (col("is_approved") == True)
             )
