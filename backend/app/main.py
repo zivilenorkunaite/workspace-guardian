@@ -299,3 +299,55 @@ async def refresh_resources(
         logger.error(f"Error refreshing resources: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ============================================================================
+# BACKWARD COMPATIBILITY ROUTES (deprecated, use /api/resources/* instead)
+# ============================================================================
+
+@app.get("/api/apps", response_model=ResourcesResponse, deprecated=True)
+async def list_apps_deprecated(
+    workspace_id: Optional[str] = Query(None),
+    service: ApprovalService = Depends(get_approval_service)
+):
+    """
+    [DEPRECATED] Use /api/resources instead.
+    List all Databricks resources with approval status.
+    """
+    return await list_resources(workspace_id, service)
+
+
+@app.post("/api/apps/approve", deprecated=True)
+async def approve_app_deprecated(
+    request: ApprovalRequest,
+    service: ApprovalService = Depends(get_approval_service)
+):
+    """
+    [DEPRECATED] Use /api/resources/approve instead.
+    Approve a resource with optional expiration date.
+    """
+    return await approve_resource(request, service)
+
+
+@app.post("/api/apps/revoke", deprecated=True)
+async def revoke_app_deprecated(
+    request: RevokeRequest,
+    service: ApprovalService = Depends(get_approval_service)
+):
+    """
+    [DEPRECATED] Use /api/resources/revoke instead.
+    Revoke a resource approval.
+    """
+    return await revoke_resource(request, service)
+
+
+@app.post("/api/apps/refresh", deprecated=True)
+async def refresh_apps_deprecated(
+    workspace_id: Optional[str] = Query(None),
+    service: ApprovalService = Depends(get_approval_service)
+):
+    """
+    [DEPRECATED] Use /api/resources/refresh instead.
+    Refresh resources from Databricks.
+    """
+    return await refresh_resources(workspace_id, service)
+
