@@ -174,33 +174,30 @@ class DatabricksClient:
         # 4. Database Instances (Lakehouse Postgres)
         # API: https://docs.databricks.com/api/workspace/database/listdatabaseinstances
         try:
-            logger.debug("Fetching Database Instances via database.list()...")
-            database_instances = list(self.client.database.list())
+            logger.debug("Fetching Database Instances via REST API /api/2.0/database/instances...")
+            response = self.client.api_client.do('GET', '/api/2.0/database/instances')
+            database_instances = response.get('database_instances', [])
             logger.info(f"Found {len(database_instances)} Database Instances")
             
             for db_instance in database_instances:
                 # Try to extract useful description from database instance details
                 description = ""
-                if hasattr(db_instance, 'comment') and db_instance.comment:
-                    description = db_instance.comment
-                elif hasattr(db_instance, 'description') and db_instance.description:
-                    description = db_instance.description
-                elif hasattr(db_instance, 'host') and db_instance.host:
-                    description = f"Host: {db_instance.host}"
+                if db_instance.get('comment'):
+                    description = db_instance['comment']
+                elif db_instance.get('description'):
+                    description = db_instance['description']
+                elif db_instance.get('read_write_dns'):
+                    description = f"Host: {db_instance['read_write_dns']}"
                 
                 # Extract state from database instance
-                state = "UNKNOWN"
-                if hasattr(db_instance, 'state'):
-                    state = str(db_instance.state)
-                elif hasattr(db_instance, 'status'):
-                    state = str(db_instance.status)
+                state = db_instance.get('state', db_instance.get('status', 'RUNNING'))
                 
                 resources.append({
-                    "name": db_instance.name if hasattr(db_instance, 'name') else db_instance.id,
-                    "resource_id": db_instance.id if hasattr(db_instance, 'id') else db_instance.name,
+                    "name": db_instance.get('name', db_instance.get('uid', '')),
+                    "resource_id": db_instance.get('uid', db_instance.get('name', '')),
                     "state": state,
-                    "creator": db_instance.created_by if hasattr(db_instance, 'created_by') else "unknown",
-                    "created_at": str(db_instance.created_at) if hasattr(db_instance, 'created_at') and db_instance.created_at else None,
+                    "creator": db_instance.get('creator', 'unknown'),
+                    "created_at": str(db_instance.get('created_at')) if db_instance.get('created_at') else None,
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
