@@ -3,10 +3,37 @@ import {
   Package, CheckCircle, XCircle, Clock, 
   User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database 
 } from 'lucide-react'
-import { format, isPast } from 'date-fns'
+import { format, isPast, isValid, parseISO } from 'date-fns'
 import '../styles/AppCard.css'
 
 function AppCard({ app, onApprove, onRevoke }) {
+  
+  // Helper to safely format dates
+  const safeFormatDate = (dateValue, formatString = 'MMM dd, yyyy') => {
+    if (!dateValue) return null
+    try {
+      // Try to parse the date - handle both ISO strings and Date objects
+      const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue)
+      if (isValid(date)) {
+        return format(date, formatString)
+      }
+      return null
+    } catch (error) {
+      console.warn('Invalid date value:', dateValue, error)
+      return null
+    }
+  }
+
+  // Helper to safely check if date is past
+  const safeIsPast = (dateValue) => {
+    if (!dateValue) return false
+    try {
+      const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue)
+      return isValid(date) ? isPast(date) : false
+    } catch (error) {
+      return false
+    }
+  }
 
   const getStateClass = () => {
     const state = app.state?.toUpperCase()
@@ -42,12 +69,21 @@ function AppCard({ app, onApprove, onRevoke }) {
   }
 
   const isExpired = app.approval_details?.expiration_date && 
-                    isPast(new Date(app.approval_details.expiration_date))
+                    safeIsPast(app.approval_details.expiration_date)
 
   const showApprovalWarning = isExpired || 
                                (app.approval_details?.expiration_date && 
                                 !isExpired && 
-                                new Date(app.approval_details.expiration_date) - new Date() < 7 * 24 * 60 * 60 * 1000)
+                                (() => {
+                                  try {
+                                    const expDate = typeof app.approval_details.expiration_date === 'string' 
+                                      ? parseISO(app.approval_details.expiration_date) 
+                                      : new Date(app.approval_details.expiration_date)
+                                    return isValid(expDate) && (expDate - new Date() < 7 * 24 * 60 * 60 * 1000)
+                                  } catch {
+                                    return false
+                                  }
+                                })())
 
   return (
     <div className={`app-card ${app.is_approved ? 'approved' : 'unapproved'}`}>
@@ -70,10 +106,10 @@ function AppCard({ app, onApprove, onRevoke }) {
             <User size={16} />
             <span>Creator: {app.creator}</span>
           </div>
-          {app.created_at && (
+          {app.created_at && safeFormatDate(app.created_at) && (
             <div className="info-item">
               <Calendar size={16} />
-              <span>Created: {format(new Date(app.created_at), 'MMM dd, yyyy')}</span>
+              <span>Created: {safeFormatDate(app.created_at)}</span>
             </div>
           )}
         </div>
@@ -90,15 +126,17 @@ function AppCard({ app, onApprove, onRevoke }) {
                 <User size={14} />
                 <span>By: {app.approval_details.approved_by}</span>
               </div>
-              <div className="info-item">
-                <Calendar size={14} />
-                <span>On: {format(new Date(app.approval_details.approval_date), 'MMM dd, yyyy')}</span>
-              </div>
-              {app.approval_details.expiration_date && (
+              {safeFormatDate(app.approval_details.approval_date) && (
+                <div className="info-item">
+                  <Calendar size={14} />
+                  <span>On: {safeFormatDate(app.approval_details.approval_date)}</span>
+                </div>
+              )}
+              {app.approval_details.expiration_date && safeFormatDate(app.approval_details.expiration_date, 'MMM dd, yyyy HH:mm') && (
                 <div className={`info-item ${isExpired ? 'expired' : ''}`}>
                   <Clock size={14} />
                   <span>
-                    Expires: {format(new Date(app.approval_details.expiration_date), 'MMM dd, yyyy HH:mm')} (Local)
+                    Expires: {safeFormatDate(app.approval_details.expiration_date, 'MMM dd, yyyy HH:mm')} (Local)
                     {isExpired && ' (EXPIRED)'}
                   </span>
                 </div>
