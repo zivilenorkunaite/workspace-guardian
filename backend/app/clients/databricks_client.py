@@ -75,19 +75,26 @@ class DatabricksClient:
         
         # 1. Databricks Apps
         # API: https://docs.databricks.com/api/workspace/apps/list
+        # Note: SDK's get_apps() uses wrong endpoint, so we call REST API directly
         try:
-            logger.debug("Fetching Databricks Apps via apps.list()...")
-            apps_list = list(self.client.apps.list())
+            logger.debug("Fetching Databricks Apps via REST API /api/2.0/apps...")
+            response = self.client.api_client.do('GET', '/api/2.0/apps')
+            apps_list = response.get('apps', [])
             logger.info(f"Found {len(apps_list)} Databricks Apps")
             
             for app in apps_list:
-                description = app.description if hasattr(app, 'description') and app.description else ""
+                # Parse app data from REST response
+                description = app.get('description', '')
+                state = "UNKNOWN"
+                if 'status' in app and 'state' in app['status']:
+                    state = app['status']['state']
+                
                 resources.append({
-                    "name": app.name,
-                    "resource_id": app.name,  # Apps use name as ID
-                    "state": app.status.state.value if app.status and app.status.state else "UNKNOWN",
-                    "creator": app.creator or "unknown",
-                    "created_at": str(app.create_time) if app.create_time else None,
+                    "name": app.get('name', ''),
+                    "resource_id": app.get('name', ''),  # Apps use name as ID
+                    "state": state,
+                    "creator": app.get('creator', 'unknown'),
+                    "created_at": str(app.get('create_time')) if app.get('create_time') else None,
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
@@ -213,15 +220,20 @@ class DatabricksClient:
         
         # Try as Databricks App
         try:
-            app = self.client.apps.get(name=resource_name)
-            description = app.description if hasattr(app, 'description') and app.description else ""
-            if app:
+            response = self.client.api_client.do('GET', f'/api/2.0/apps/{resource_name}')
+            if response:
+                app = response
+                description = app.get('description', '')
+                state = "UNKNOWN"
+                if 'status' in app and 'state' in app['status']:
+                    state = app['status']['state']
+                
                 return {
-                    "name": app.name,
-                    "resource_id": app.name,
-                    "state": app.status.state.value if app.status and app.status.state else "UNKNOWN",
-                    "creator": app.creator or "unknown",
-                    "created_at": str(app.create_time) if app.create_time else None,
+                    "name": app.get('name', resource_name),
+                    "resource_id": app.get('name', resource_name),
+                    "state": state,
+                    "creator": app.get('creator', 'unknown'),
+                    "created_at": str(app.get('create_time')) if app.get('create_time') else None,
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
