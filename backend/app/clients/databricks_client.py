@@ -74,9 +74,13 @@ class DatabricksClient:
         ws_name = self.workspace_name
         
         # 1. Databricks Apps
+        # API: https://docs.databricks.com/api/workspace/apps/list
         try:
-            apps = self.client.apps.list()
-            for app in apps:
+            logger.debug("Fetching Databricks Apps via apps.list()...")
+            apps_list = list(self.client.apps.list())
+            logger.info(f"Found {len(apps_list)} Databricks Apps")
+            
+            for app in apps_list:
                 description = app.description if hasattr(app, 'description') and app.description else ""
                 resources.append({
                     "name": app.name,
@@ -89,14 +93,17 @@ class DatabricksClient:
                     "workspace_name": ws_name,
                     "type": "app"
                 })
-            logger.info(f"Found {len(list(apps))} Databricks Apps")
         except Exception as e:
-            logger.error(f"Error listing apps: {e}")
+            logger.error(f"Error listing Databricks Apps: {e}", exc_info=True)
         
         # 2. Model Serving Endpoints
+        # API: https://docs.databricks.com/api/workspace/servingendpoints/list
         try:
-            endpoints = self.client.serving_endpoints.list()
-            for endpoint in endpoints:
+            logger.debug("Fetching Model Serving Endpoints via serving_endpoints.list()...")
+            endpoints_list = list(self.client.serving_endpoints.list())
+            logger.info(f"Found {len(endpoints_list)} Model Serving Endpoints")
+            
+            for endpoint in endpoints_list:
                 # Get description from API
                 description = ""
                 if hasattr(endpoint, 'description') and endpoint.description:
@@ -119,14 +126,18 @@ class DatabricksClient:
                     "workspace_name": ws_name,
                     "type": "serving_endpoint"
                 })
-            logger.info(f"Found {len(list(endpoints))} Serving Endpoints")
         except Exception as e:
-            logger.error(f"Error listing serving endpoints: {e}")
+            logger.error(f"Error listing Model Serving Endpoints: {e}", exc_info=True)
         
         # 3. Vector Search Endpoints
+        # API: https://docs.databricks.com/api/workspace/vectorsearchendpoints/listendpoints
         try:
+            logger.debug("Fetching Vector Search Endpoints via vector_search_endpoints.list_endpoints()...")
             vector_endpoints = self.client.vector_search_endpoints.list_endpoints()
-            for endpoint in vector_endpoints.endpoints or []:
+            endpoints_list = vector_endpoints.endpoints or []
+            logger.info(f"Found {len(endpoints_list)} Vector Search Endpoints")
+            
+            for endpoint in endpoints_list:
                 # Extract endpoint type as description
                 description = ""
                 if hasattr(endpoint, 'endpoint_type') and endpoint.endpoint_type:
@@ -143,39 +154,46 @@ class DatabricksClient:
                     "workspace_name": ws_name,
                     "type": "vector_search"
                 })
-            logger.info(f"Found {len(vector_endpoints.endpoints or [])} Vector Search Endpoints")
         except Exception as e:
-            logger.error(f"Error listing vector search endpoints: {e}")
+            logger.error(f"Error listing Vector Search Endpoints: {e}", exc_info=True)
         
-        # 4. Lakehouse Postgres Connections
+        # 4. Database Instances (Lakehouse Postgres)
+        # API: https://docs.databricks.com/api/workspace/database/listdatabaseinstances
         try:
-            connections = self.client.connections.list()
-            for conn in connections:
-                # Try to extract useful description from connection details
+            logger.debug("Fetching Database Instances via database.list()...")
+            database_instances = list(self.client.database.list())
+            logger.info(f"Found {len(database_instances)} Database Instances")
+            
+            for db_instance in database_instances:
+                # Try to extract useful description from database instance details
                 description = ""
-                if hasattr(conn, 'options') and conn.options:
-                    # Try to get comment or description from options
-                    if 'comment' in conn.options:
-                        description = conn.options['comment']
-                    elif 'description' in conn.options:
-                        description = conn.options['description']
-                    elif 'host' in conn.options:
-                        description = f"Host: {conn.options['host']}"
+                if hasattr(db_instance, 'comment') and db_instance.comment:
+                    description = db_instance.comment
+                elif hasattr(db_instance, 'description') and db_instance.description:
+                    description = db_instance.description
+                elif hasattr(db_instance, 'host') and db_instance.host:
+                    description = f"Host: {db_instance.host}"
+                
+                # Extract state from database instance
+                state = "UNKNOWN"
+                if hasattr(db_instance, 'state'):
+                    state = str(db_instance.state)
+                elif hasattr(db_instance, 'status'):
+                    state = str(db_instance.status)
                 
                 resources.append({
-                    "name": conn.name,
-                    "resource_id": conn.name,
-                    "state": "RUNNING" if conn.read_only is False else "UNKNOWN",
-                    "creator": conn.owner or "unknown",
-                    "created_at": str(conn.created_at) if conn.created_at else None,
+                    "name": db_instance.name if hasattr(db_instance, 'name') else db_instance.id,
+                    "resource_id": db_instance.id if hasattr(db_instance, 'id') else db_instance.name,
+                    "state": state,
+                    "creator": db_instance.created_by if hasattr(db_instance, 'created_by') else "unknown",
+                    "created_at": str(db_instance.created_at) if hasattr(db_instance, 'created_at') and db_instance.created_at else None,
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
                     "type": "postgres"
                 })
-            logger.info(f"Found {len(list(connections))} Lakehouse Postgres Connections")
         except Exception as e:
-            logger.error(f"Error listing connections: {e}")
+            logger.error(f"Error listing Database Instances: {e}", exc_info=True)
         
         logger.info(f"Total resources found: {len(resources)}")
         return resources
@@ -231,7 +249,7 @@ class DatabricksClient:
                 "resource_id": endpoint.id or endpoint.name,
                 "state": endpoint.state.ready.value if endpoint.state and endpoint.state.ready else "UNKNOWN",
                 "creator": endpoint.creator or "unknown",
-                "created_at": str(endpoint.creation_timestamp) if endpoint.creation_timestamp else "",
+                "created_at": str(endpoint.creation_timestamp) if endpoint.creation_timestamp else None,
                 "description": description,
                 "workspace_id": ws_id,
                 "workspace_name": ws_name,
