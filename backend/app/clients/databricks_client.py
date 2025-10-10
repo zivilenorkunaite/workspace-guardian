@@ -139,23 +139,30 @@ class DatabricksClient:
         # 3. Vector Search Endpoints
         # API: https://docs.databricks.com/api/workspace/vectorsearchendpoints/listendpoints
         try:
-            logger.debug("Fetching Vector Search Endpoints via vector_search_endpoints.list_endpoints()...")
-            vector_endpoints = self.client.vector_search_endpoints.list_endpoints()
-            endpoints_list = vector_endpoints.endpoints or []
+            logger.debug("Fetching Vector Search Endpoints via REST API /api/2.0/vector-search/endpoints...")
+            response = self.client.api_client.do('GET', '/api/2.0/vector-search/endpoints')
+            endpoints_list = response.get('endpoints', [])
             logger.info(f"Found {len(endpoints_list)} Vector Search Endpoints")
             
             for endpoint in endpoints_list:
                 # Extract endpoint type as description
                 description = ""
-                if hasattr(endpoint, 'endpoint_type') and endpoint.endpoint_type:
-                    description = f"Type: {endpoint.endpoint_type}"
+                endpoint_type = endpoint.get('endpoint_type')
+                if endpoint_type:
+                    description = f"Type: {endpoint_type}"
+                
+                # Extract state from endpoint_status
+                state = "UNKNOWN"
+                endpoint_status = endpoint.get('endpoint_status', {})
+                if endpoint_status and 'state' in endpoint_status:
+                    state = endpoint_status['state']
                 
                 resources.append({
-                    "name": endpoint.name,
-                    "resource_id": endpoint.name,
-                    "state": endpoint.endpoint_status.state.value if endpoint.endpoint_status and endpoint.endpoint_status.state else "UNKNOWN",
-                    "creator": endpoint.creator or "unknown",
-                    "created_at": str(endpoint.creation_timestamp) if endpoint.creation_timestamp else None,
+                    "name": endpoint.get('name', ''),
+                    "resource_id": endpoint.get('name', ''),
+                    "state": state,
+                    "creator": endpoint.get('creator', 'unknown'),
+                    "created_at": str(endpoint.get('creation_timestamp')) if endpoint.get('creation_timestamp') else None,
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
