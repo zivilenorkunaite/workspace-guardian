@@ -37,7 +37,7 @@ function App() {
   // Load apps when workspace changes
   useEffect(() => {
     if (selectedWorkspace) {
-      loadApps(selectedWorkspace.workspace_id)
+      loadApps(selectedWorkspace.id)
     }
   }, [selectedWorkspace])
 
@@ -65,13 +65,15 @@ function App() {
       setLoading(true)
       setError(null)
       const data = await fetchApps(workspaceId)
-      setApps(data.apps)
+      // API returns 'resources' field, not 'apps'
+      const resources = data.resources || []
+      setApps(resources)
       
       // Split stats by type
-      const databricksApps = data.apps.filter(app => app.type === 'app')
-      const servingEndpoints = data.apps.filter(app => app.type === 'serving_endpoint')
-      const vectorSearch = data.apps.filter(app => app.type === 'vector_search')
-      const lakehousePostgres = data.apps.filter(app => app.type === 'lakehouse_postgres')
+      const databricksApps = resources.filter(app => app.type === 'app')
+      const servingEndpoints = resources.filter(app => app.type === 'serving_endpoint')
+      const vectorSearch = resources.filter(app => app.type === 'vector_search')
+      const lakehousePostgres = resources.filter(app => app.type === 'postgres')
       
       setStats({
         apps: {
@@ -105,8 +107,8 @@ function App() {
     try {
       setRefreshing(true)
       setError(null)
-      await refreshApps(selectedWorkspace.workspace_id)
-      await loadApps(selectedWorkspace.workspace_id)
+      await refreshApps(selectedWorkspace.id)
+      await loadApps(selectedWorkspace.id)
     } catch (err) {
       setError('Failed to refresh apps: ' + err.message)
       console.error('Error refreshing apps:', err)
@@ -130,7 +132,7 @@ function App() {
     setSelectedApp(null)
     // Reload apps to get updated approval status
     if (selectedWorkspace) {
-      loadApps(selectedWorkspace.workspace_id)
+      loadApps(selectedWorkspace.id)
     }
   }
 
@@ -144,7 +146,7 @@ function App() {
     setSelectedApp(null)
     // Reload apps to get updated approval status
     if (selectedWorkspace) {
-      loadApps(selectedWorkspace.workspace_id)
+      loadApps(selectedWorkspace.id)
     }
   }
 
@@ -206,7 +208,7 @@ function App() {
             endpointsStats={stats.endpoints}
             vectorSearchStats={stats.vectorSearch}
             lakehousePostgresStats={stats.lakehousePostgres}
-            workspaceName={selectedWorkspace.workspace_name}
+            workspaceName={selectedWorkspace.name}
           />
         )}
 
@@ -220,7 +222,7 @@ function App() {
             apps={apps}
             onApprove={handleApprove}
             onRevoke={handleRevoke}
-            onReload={() => selectedWorkspace && loadApps(selectedWorkspace.workspace_id)}
+            onReload={() => selectedWorkspace && loadApps(selectedWorkspace.id)}
           />
         )}
       </main>

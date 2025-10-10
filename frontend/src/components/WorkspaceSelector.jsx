@@ -11,9 +11,9 @@ function WorkspaceSelector({ workspaces, selectedWorkspace, onSelect, disabled }
       </label>
       <select
         id="workspace-select"
-        value={selectedWorkspace?.workspace_id || ''}
+        value={selectedWorkspace?.id || ''}
         onChange={(e) => {
-          const workspace = workspaces.find(w => w.workspace_id === e.target.value)
+          const workspace = workspaces.find(w => w.id === e.target.value)
           onSelect(workspace)
         }}
         disabled={disabled || workspaces.length === 0}
@@ -22,8 +22,8 @@ function WorkspaceSelector({ workspaces, selectedWorkspace, onSelect, disabled }
           <option value="">No workspaces available</option>
         ) : (
           workspaces.map(workspace => (
-            <option key={workspace.workspace_id} value={workspace.workspace_id}>
-              {workspace.workspace_name}
+            <option key={workspace.id} value={workspace.id}>
+              {workspace.name}
             </option>
           ))
         )}

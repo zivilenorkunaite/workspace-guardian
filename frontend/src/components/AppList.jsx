@@ -23,7 +23,7 @@ function AppList({ apps, onApprove, onRevoke, onReload }) {
   const databricksApps = apps.filter(app => app.type === 'app')
   const servingEndpoints = apps.filter(app => app.type === 'serving_endpoint')
   const vectorSearch = apps.filter(app => app.type === 'vector_search')
-  const lakehousePostgres = apps.filter(app => app.type === 'lakehouse_postgres')
+  const lakehousePostgres = apps.filter(app => app.type === 'postgres')
 
   return (
     <div className="app-list-container">
@@ -46,7 +46,7 @@ function AppList({ apps, onApprove, onRevoke, onReload }) {
             <div className="app-list">
               {databricksApps.map(app => (
                 <AppCard 
-                  key={`${app.app_id}-${app.workspace_id}`}
+                  key={`${app.resource_id}-${app.workspace_id}`}
                   app={app}
                   onApprove={onApprove}
                   onRevoke={onRevoke}
@@ -76,7 +76,7 @@ function AppList({ apps, onApprove, onRevoke, onReload }) {
             <div className="app-list">
               {servingEndpoints.map(app => (
                 <AppCard 
-                  key={`${app.app_id}-${app.workspace_id}`}
+                  key={`${app.resource_id}-${app.workspace_id}`}
                   app={app}
                   onApprove={onApprove}
                   onRevoke={onRevoke}
@@ -106,7 +106,7 @@ function AppList({ apps, onApprove, onRevoke, onReload }) {
             <div className="app-list">
               {vectorSearch.map(app => (
                 <AppCard 
-                  key={`${app.app_id}-${app.workspace_id}`}
+                  key={`${app.resource_id}-${app.workspace_id}`}
                   app={app}
                   onApprove={onApprove}
                   onRevoke={onRevoke}
@@ -136,7 +136,7 @@ function AppList({ apps, onApprove, onRevoke, onReload }) {
             <div className="app-list">
               {lakehousePostgres.map(app => (
                 <AppCard 
-                  key={`${app.app_id}-${app.workspace_id}`}
+                  key={`${app.resource_id}-${app.workspace_id}`}
                   app={app}
                   onApprove={onApprove}
                   onRevoke={onRevoke}
