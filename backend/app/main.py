@@ -203,6 +203,13 @@ async def approve_resource(
     logger.info(f"Approved by: {request.approved_by}")
     
     try:
+        # Parse expiration_date string to datetime if provided
+        expiration_datetime = None
+        if request.expiration_date:
+            from datetime import datetime as dt
+            from dateutil import parser
+            expiration_datetime = parser.parse(request.expiration_date)
+        
         success = service.approve_resource(
             resource_name=request.resource_name,
             resource_id=request.resource_id,
@@ -211,7 +218,7 @@ async def approve_resource(
             resource_creator=request.resource_creator,
             approved_by=request.approved_by,
             justification=request.justification,
-            expiration_date=request.expiration_date
+            expiration_date=expiration_datetime
         )
         
         if success:
