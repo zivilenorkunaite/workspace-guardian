@@ -1,7 +1,7 @@
 import React from 'react'
 import { 
   Package, CheckCircle, XCircle, Clock, 
-  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database 
+  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database, FileText 
 } from 'lucide-react'
 import { format, isPast, isValid, parseISO } from 'date-fns'
 import '../styles/AppCard.css'
@@ -68,17 +68,17 @@ function AppCard({ app, onApprove, onRevoke }) {
     }
   }
 
-  const isExpired = app.approval_details?.expiration_date && 
-                    safeIsPast(app.approval_details.expiration_date)
+  const isExpired = app.expiration_date && 
+                    safeIsPast(app.expiration_date)
 
   const showApprovalWarning = isExpired || 
-                               (app.approval_details?.expiration_date && 
+                               (app.expiration_date && 
                                 !isExpired && 
                                 (() => {
                                   try {
-                                    const expDate = typeof app.approval_details.expiration_date === 'string' 
-                                      ? parseISO(app.approval_details.expiration_date) 
-                                      : new Date(app.approval_details.expiration_date)
+                                    const expDate = typeof app.expiration_date === 'string' 
+                                      ? parseISO(app.expiration_date) 
+                                      : new Date(app.expiration_date)
                                     return isValid(expDate) && (expDate - new Date() < 7 * 24 * 60 * 60 * 1000)
                                   } catch {
                                     return false
@@ -112,9 +112,15 @@ function AppCard({ app, onApprove, onRevoke }) {
               <span>Created: {safeFormatDate(app.created_at)}</span>
             </div>
           )}
+          {app.description && (
+            <div className="info-item description-item">
+              <FileText size={16} />
+              <span>{app.description}</span>
+            </div>
+          )}
         </div>
 
-        {app.is_approved && app.approval_details ? (
+        {app.is_approved ? (
           <div className="approval-details">
             <div className="approval-header">
               <Shield size={18} className="approval-icon" />
@@ -122,21 +128,23 @@ function AppCard({ app, onApprove, onRevoke }) {
             </div>
             
             <div className="approval-info">
-              <div className="info-item">
-                <User size={14} />
-                <span>By: {app.approval_details.approved_by}</span>
-              </div>
-              {safeFormatDate(app.approval_details.approval_date) && (
+              {app.approved_by && (
                 <div className="info-item">
-                  <Calendar size={14} />
-                  <span>On: {safeFormatDate(app.approval_details.approval_date)}</span>
+                  <User size={14} />
+                  <span>By: {app.approved_by}</span>
                 </div>
               )}
-              {app.approval_details.expiration_date && safeFormatDate(app.approval_details.expiration_date, 'MMM dd, yyyy HH:mm') && (
+              {safeFormatDate(app.approval_date) && (
+                <div className="info-item">
+                  <Calendar size={14} />
+                  <span>On: {safeFormatDate(app.approval_date)}</span>
+                </div>
+              )}
+              {app.expiration_date && safeFormatDate(app.expiration_date, 'MMM dd, yyyy HH:mm') && (
                 <div className={`info-item ${isExpired ? 'expired' : ''}`}>
                   <Clock size={14} />
                   <span>
-                    Expires: {safeFormatDate(app.approval_details.expiration_date, 'MMM dd, yyyy HH:mm')} (Local)
+                    Expires: {safeFormatDate(app.expiration_date, 'MMM dd, yyyy HH:mm')} (Local)
                     {isExpired && ' (EXPIRED)'}
                   </span>
                 </div>
@@ -154,10 +162,12 @@ function AppCard({ app, onApprove, onRevoke }) {
               </div>
             )}
 
-            <div className="approval-justification">
-              <strong>Justification:</strong>
-              <p>{app.approval_details.justification}</p>
-            </div>
+            {app.justification && (
+              <div className="approval-justification">
+                <strong>Justification:</strong>
+                <p>{app.justification}</p>
+              </div>
+            )}
 
             <button 
               className="revoke-button"
