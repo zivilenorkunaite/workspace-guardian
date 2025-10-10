@@ -34,11 +34,11 @@ function ApprovalModal({ app, workspace, onSuccess, onCancel }) {
       }
 
       const approvalData = {
-        app_name: app.name,
-        app_id: app.app_id,
-        workspace_id: workspace.workspace_id,
-        workspace_name: workspace.workspace_name,
-        app_creator: app.creator,
+        resource_name: app.name,
+        resource_id: app.resource_id,
+        workspace_id: workspace.id,
+        workspace_name: workspace.name,
+        resource_creator: app.creator,
         approved_by: formData.approvedBy,
         justification: formData.justification,
         expiration_date: expirationDateUTC
@@ -75,7 +75,7 @@ function ApprovalModal({ app, workspace, onSuccess, onCancel }) {
         <div className="modal-body">
           <div className="app-summary">
             <h3>{app.name}</h3>
-            <p>Workspace: {workspace.workspace_name}</p>
+            <p>Workspace: {workspace.name}</p>
             <p>Creator: {app.creator}</p>
           </div>
 
