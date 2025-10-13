@@ -85,9 +85,31 @@ class DatabricksClient:
             for app in apps_list:
                 # Parse app data from REST response
                 description = app.get('description', '')
+                
+                # Extract state from various possible locations
                 state = "UNKNOWN"
-                if 'status' in app and 'state' in app['status']:
-                    state = app['status']['state']
+                if 'status' in app:
+                    status = app['status']
+                    if isinstance(status, dict):
+                        # Try nested state field
+                        if 'state' in status:
+                            state = status['state']
+                        # Try status field directly
+                        elif 'status' in status:
+                            state = status['status']
+                    elif isinstance(status, str):
+                        # Status is a string directly
+                        state = status
+                
+                # Try direct state field
+                if state == "UNKNOWN" and 'state' in app:
+                    state = app['state']
+                
+                # Log for debugging
+                if state == "UNKNOWN":
+                    logger.warning(f"App '{app.get('name')}' state could not be determined. Full status object: {app.get('status')}")
+                else:
+                    logger.info(f"App '{app.get('name')}' state: {state}")
                 
                 resources.append({
                     "name": app.get('name', ''),
@@ -157,6 +179,10 @@ class DatabricksClient:
                 if endpoint_status and 'state' in endpoint_status:
                     state = endpoint_status['state']
                 
+                # Log state detection
+                if state == "UNKNOWN":
+                    logger.warning(f"Vector Search Endpoint '{endpoint.get('name')}' state could not be determined. Status: {endpoint_status}")
+                
                 resources.append({
                     "name": endpoint.get('name', ''),
                     "resource_id": endpoint.get('name', ''),
@@ -191,6 +217,9 @@ class DatabricksClient:
                 
                 # Extract state from database instance
                 state = db_instance.get('state', db_instance.get('status', 'RUNNING'))
+                
+                # Log state detection
+                logger.info(f"Database Instance '{db_instance.get('name')}' state: {state}")
                 
                 resources.append({
                     "name": db_instance.get('name', db_instance.get('uid', '')),
