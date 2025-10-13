@@ -88,23 +88,22 @@ class DatabricksClient:
                 # Parse app data from REST response
                 description = app.get('description', '')
                 
-                # Extract state from app_status (correct field per Databricks API)
-                # API docs: https://docs.databricks.com/api/workspace/apps/list#apps-app_status
+                # Extract state from compute_status (actual field in API response)
                 state = "UNKNOWN"
-                if 'app_status' in app:
+                if 'compute_status' in app:
+                    compute_status = app['compute_status']
+                    if isinstance(compute_status, dict) and 'state' in compute_status:
+                        state = compute_status['state']
+                    elif isinstance(compute_status, str):
+                        state = compute_status
+                
+                # Fallback: try app_status (documented field, may vary by API version)
+                if state == "UNKNOWN" and 'app_status' in app:
                     app_status = app['app_status']
                     if isinstance(app_status, dict) and 'state' in app_status:
                         state = app_status['state']
                     elif isinstance(app_status, str):
                         state = app_status
-                
-                # Fallback: try 'status' field for backward compatibility
-                if state == "UNKNOWN" and 'status' in app:
-                    status = app['status']
-                    if isinstance(status, dict) and 'state' in status:
-                        state = status['state']
-                    elif isinstance(status, str):
-                        state = status
                 
                 logger.info(f"App '{app.get('name')}' state: {state}")
                 
