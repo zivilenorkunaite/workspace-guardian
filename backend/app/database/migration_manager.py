@@ -172,8 +172,18 @@ class MigrationManager:
                 logger.info(f"📋 No applied migrations found (table is empty)")
                 return set()
             
-            versions = [row['version'] for row in result]
+            # CRITICAL: Convert version to int to ensure type consistency
+            # Database may return version as string, long, or other numeric types
+            versions = []
+            for row in result:
+                try:
+                    version = int(row['version'])
+                    versions.append(version)
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Invalid version in migration record: {row.get('version')} - {e}")
+            
             logger.info(f"📋 Found {len(versions)} applied migration(s): {sorted(versions)}")
+            logger.debug(f"   Applied versions (type={type(versions[0]) if versions else 'N/A'}): {versions}")
             return set(versions)
             
         except Exception as e:
@@ -206,6 +216,7 @@ class MigrationManager:
         """
         logger.info("=" * 70)
         logger.info(f"🔄 Processing {len(migrations)} migration(s)...")
+        logger.info(f"   Applied versions: {sorted(applied) if applied else '(none)'}")
         logger.info("=" * 70)
         
         pending_count = 0
@@ -213,6 +224,9 @@ class MigrationManager:
         
         for migration in migrations:
             version = migration['version']
+            
+            # Debug logging for version comparison
+            logger.debug(f"Comparing migration version {version} (type={type(version)}) against applied: {applied}")
             
             if version in applied:
                 logger.info(f"⏭️  [SKIP] Migration {version} already applied: {migration['description']}")
@@ -285,6 +299,17 @@ class MigrationManager:
             version = migration['version']
             description = migration['description']
             sql_statement = migration['sql']
+            
+            # CRITICAL: Check if this version already exists to prevent duplicates
+            existing = self.executor.execute(f"""
+                SELECT version FROM {migrations_table} 
+                WHERE version = {version}
+                LIMIT 1
+            """)
+            
+            if existing and len(existing) > 0:
+                logger.warning(f"⚠️  Migration version {version} already recorded in table - skipping duplicate insert")
+                return
             
             now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             

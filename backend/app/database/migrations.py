@@ -24,7 +24,7 @@ def get_migration_definitions_ddl(catalog: str, schema: str) -> str:
     
     return f"""
     CREATE TABLE IF NOT EXISTS {table_name} (
-        version INT NOT NULL COMMENT 'Migration version number (unique)',
+        version INT NOT NULL COMMENT 'Migration version number (must be unique)',
         description STRING NOT NULL COMMENT 'Human-readable migration description',
         sql_statement STRING NOT NULL COMMENT 'SQL statement executed',
         checksum STRING NOT NULL COMMENT 'SHA-256 checksum of SQL statement',
@@ -38,7 +38,7 @@ def get_migration_definitions_ddl(catalog: str, schema: str) -> str:
         updated_by STRING NOT NULL COMMENT 'User/service who last updated record'
     )
     USING DELTA
-    COMMENT 'Migration tracking table - records all schema changes'
+    COMMENT 'Migration tracking table - records all schema changes. Version uniqueness enforced by application logic.'
     """
 
 
