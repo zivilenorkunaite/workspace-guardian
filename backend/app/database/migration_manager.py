@@ -132,7 +132,16 @@ class MigrationManager:
         try:
             ddl = get_migration_definitions_ddl(self.catalog, self.schema)
             self.executor.execute(ddl)
-            logger.info(f"✅ Migration definitions table exists: {table_name}")
+            logger.info(f"✅ Migration definitions table ready: {table_name}")
+            
+            # Verify table is accessible by counting rows
+            try:
+                count_result = self.executor.execute(f"SELECT COUNT(*) as cnt FROM {table_name}")
+                row_count = count_result[0]['cnt'] if count_result else 0
+                logger.info(f"📊 Migration table contains {row_count} record(s)")
+            except Exception as count_err:
+                logger.warning(f"Could not count migration records: {count_err}")
+            
             return table_name
         except Exception as e:
             logger.error(f"Failed to create migration_definitions table: {e}")
@@ -149,18 +158,37 @@ class MigrationManager:
             Set of applied migration versions
         """
         try:
+            # First, verify table exists by describing it
+            logger.info(f"🔍 Checking if migration_definitions table has data...")
+            
             result = self.executor.execute(f"""
                 SELECT version, description, applied_at, status 
                 FROM {migrations_table} 
                 WHERE status = 'applied' 
                 ORDER BY version
             """)
+            
+            if not result:
+                logger.info(f"📋 No applied migrations found (table is empty)")
+                return set()
+            
             versions = [row['version'] for row in result]
-            logger.info(f"📋 Applied migrations: {versions}")
+            logger.info(f"📋 Found {len(versions)} applied migration(s): {sorted(versions)}")
             return set(versions)
+            
         except Exception as e:
-            logger.warning(f"Could not read migrations (table may be empty): {e}")
-            return set()
+            error_msg = str(e).lower()
+            
+            # Check if it's a "table doesn't exist" error
+            if any(x in error_msg for x in ['not found', 'does not exist', 'table_or_view_not_found']):
+                logger.info(f"📋 Migration table doesn't exist yet (first run) - will create it")
+                return set()
+            else:
+                # Unexpected error - log it prominently
+                logger.error(f"❌ Error reading migration_definitions table: {e}")
+                logger.error(f"   Table: {migrations_table}")
+                logger.error(f"   This may indicate a permissions or schema issue")
+                return set()
     
     def _apply_migrations(
         self, 
