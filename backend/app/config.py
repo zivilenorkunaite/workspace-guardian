@@ -1,7 +1,12 @@
 """Configuration management for Workspace Guardian."""
 import os
+from pathlib import Path
 from typing import Optional
 from pydantic import BaseSettings, Field
+
+# Find workspace root (go up from backend/app/ to workspace root)
+WORKSPACE_ROOT = Path(__file__).parent.parent.parent
+ENV_FILE_PATH = WORKSPACE_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -32,7 +37,8 @@ class Settings(BaseSettings):
         return not self.is_databricks_app
     
     class Config:
-        env_file = ".env"
+        # Look for .env in workspace root (dynamically resolved)
+        env_file = str(ENV_FILE_PATH)
         case_sensitive = False
 
 
