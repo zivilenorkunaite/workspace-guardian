@@ -86,30 +86,25 @@ class DatabricksClient:
                 # Parse app data from REST response
                 description = app.get('description', '')
                 
-                # Extract state from various possible locations
+                # Extract state from app_status (correct field per Databricks API)
+                # API docs: https://docs.databricks.com/api/workspace/apps/list#apps-app_status
                 state = "UNKNOWN"
-                if 'status' in app:
+                if 'app_status' in app:
+                    app_status = app['app_status']
+                    if isinstance(app_status, dict) and 'state' in app_status:
+                        state = app_status['state']
+                    elif isinstance(app_status, str):
+                        state = app_status
+                
+                # Fallback: try 'status' field for backward compatibility
+                if state == "UNKNOWN" and 'status' in app:
                     status = app['status']
-                    if isinstance(status, dict):
-                        # Try nested state field
-                        if 'state' in status:
-                            state = status['state']
-                        # Try status field directly
-                        elif 'status' in status:
-                            state = status['status']
+                    if isinstance(status, dict) and 'state' in status:
+                        state = status['state']
                     elif isinstance(status, str):
-                        # Status is a string directly
                         state = status
                 
-                # Try direct state field
-                if state == "UNKNOWN" and 'state' in app:
-                    state = app['state']
-                
-                # Log for debugging
-                if state == "UNKNOWN":
-                    logger.warning(f"App '{app.get('name')}' state could not be determined. Full status object: {app.get('status')}")
-                else:
-                    logger.info(f"App '{app.get('name')}' state: {state}")
+                logger.info(f"App '{app.get('name')}' state: {state}")
                 
                 resources.append({
                     "name": app.get('name', ''),
