@@ -68,31 +68,3 @@ async def refresh_resources(
         logger.error(f"Error refreshing resources: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# BACKWARD COMPATIBILITY ROUTES (deprecated, use /api/resources/* instead)
-# ============================================================================
-
-@router.get("/apps", response_model=ResourcesResponse, deprecated=True, include_in_schema=False)
-async def list_apps_deprecated(
-    workspace_id: Optional[str] = Query(None),
-    service: ApprovalService = Depends(get_approval_service)
-):
-    """
-    [DEPRECATED] Use /api/resources instead.
-    List all Databricks resources with approval status.
-    """
-    return await list_resources(workspace_id, service)
-
-
-@router.post("/apps/refresh", deprecated=True, include_in_schema=False)
-async def refresh_apps_deprecated(
-    workspace_id: Optional[str] = Query(None),
-    service: ApprovalService = Depends(get_approval_service)
-):
-    """
-    [DEPRECATED] Use /api/resources/refresh instead.
-    Refresh resources from Databricks.
-    """
-    return await refresh_resources(workspace_id, service)
-

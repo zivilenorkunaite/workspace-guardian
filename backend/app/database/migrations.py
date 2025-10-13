@@ -95,7 +95,7 @@ def get_migrations(catalog: str, schema: str) -> List[Dict[str, Any]]:
             "description": "Add revoked_reason column to track why approvals were revoked",
             "sql": f"""
                 ALTER TABLE {catalog}.{schema}.approved_resources 
-                ADD COLUMN IF NOT EXISTS revoked_reason STRING 
+                ADD COLUMN revoked_reason STRING 
                 COMMENT 'Reason for revocation'
             """
         },

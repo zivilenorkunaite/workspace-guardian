@@ -301,15 +301,15 @@ class MigrationManager:
             sql_statement = migration['sql']
             
             # CRITICAL: Check if this version already exists to prevent duplicates
-            existing = self.executor.execute(f"""
-                SELECT version FROM {migrations_table} 
-                WHERE version = {version}
-                LIMIT 1
-            """)
+            #existing = self.executor.execute(f"""
+            #    SELECT version FROM {migrations_table} 
+            #    WHERE version = {version}
+            #    LIMIT 1
+            #""")
             
-            if existing and len(existing) > 0:
-                logger.warning(f"⚠️  Migration version {version} already recorded in table - skipping duplicate insert")
-                return
+            #if existing and len(existing) > 0:
+            #    logger.warning(f"⚠️  Migration version {version} already recorded in table - skipping duplicate insert")
+            #    return
             
             now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             

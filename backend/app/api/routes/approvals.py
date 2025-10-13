@@ -109,31 +109,3 @@ async def revoke_resource(
         logger.error(f"Error revoking approval: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# BACKWARD COMPATIBILITY ROUTES (deprecated, use /api/resources/* instead)
-# ============================================================================
-
-@router.post("/apps/approve", deprecated=True, include_in_schema=False)
-async def approve_app_deprecated(
-    request: ApprovalRequest,
-    service: ApprovalService = Depends(get_approval_service)
-):
-    """
-    [DEPRECATED] Use /api/resources/approve instead.
-    Approve a resource with optional expiration date.
-    """
-    return await approve_resource(request, service)
-
-
-@router.post("/apps/revoke", deprecated=True, include_in_schema=False)
-async def revoke_app_deprecated(
-    request: RevokeRequest,
-    service: ApprovalService = Depends(get_approval_service)
-):
-    """
-    [DEPRECATED] Use /api/resources/revoke instead.
-    Revoke a resource approval.
-    """
-    return await revoke_resource(request, service)
-
