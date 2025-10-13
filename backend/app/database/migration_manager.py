@@ -99,14 +99,19 @@ class MigrationManager:
                 details={"catalog": self.catalog}
             )
         
-        # Step 2: Create schema if it doesn't exist (safe operation)
+        # Step 2: Check if schema exists (using fully qualified name)
         logger.info(f"🔍 Checking schema: {self.catalog}.{self.schema}")
         try:
-            self.executor.execute(f"USE SCHEMA {self.schema}")
-            logger.info(f"✅ Schema already exists: {self.catalog}.{self.schema}")
-        except Exception:
+            # Check schema existence using DESCRIBE (more reliable than USE)
+            result = self.executor.execute(f"DESCRIBE SCHEMA {self.catalog}.{self.schema}")
+            if result:
+                logger.info(f"✅ Schema already exists: {self.catalog}.{self.schema}")
+            else:
+                raise Exception("Schema not found")
+        except Exception as e:
             # Schema doesn't exist, create it with fully qualified name
             logger.info(f"📝 Schema does not exist, creating: {self.catalog}.{self.schema}")
+            logger.debug(f"   Schema check error (expected if new): {e}")
             self.executor.execute(f"CREATE SCHEMA IF NOT EXISTS {self.catalog}.{self.schema}")
             logger.info(f"✅ Schema created successfully: {self.catalog}.{self.schema}")
     
