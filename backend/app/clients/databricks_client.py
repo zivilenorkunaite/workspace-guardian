@@ -129,13 +129,48 @@ class DatabricksClient:
             logger.info(f"Found {len(endpoints_list)} Model Serving Endpoints")
             
             for endpoint in endpoints_list:
-                # Get description from API
+                # Extract served entities and check for foundation models
+                # API: https://docs.databricks.com/api/workspace/servingendpoints/list#endpoints-config-served_entities
                 description = ""
+                is_foundation_model = False
+                served_entities = []
+                
                 if hasattr(endpoint, 'description') and endpoint.description:
                     description = endpoint.description
-                elif hasattr(endpoint, 'config') and endpoint.config:
-                    # Fallback: extract model names if no description
-                    if hasattr(endpoint.config, 'served_models') and endpoint.config.served_models:
+                
+                # Extract served entities from config
+                if hasattr(endpoint, 'config') and endpoint.config:
+                    if hasattr(endpoint.config, 'served_entities') and endpoint.config.served_entities:
+                        for entity in endpoint.config.served_entities:
+                            entity_info = {}
+                            if hasattr(entity, 'name'):
+                                entity_info['name'] = entity.name
+                            if hasattr(entity, 'entity_name'):
+                                entity_info['entity_name'] = entity.entity_name
+                            if hasattr(entity, 'entity_version'):
+                                entity_info['entity_version'] = entity.entity_version
+                            
+                            # Check if this is a foundation/external model
+                            if hasattr(entity, 'external_model') and entity.external_model:
+                                is_foundation_model = True
+                                entity_info['is_foundation_model'] = True
+                                if hasattr(entity.external_model, 'name'):
+                                    entity_info['foundation_model_name'] = entity.external_model.name
+                            
+                            served_entities.append(entity_info)
+                        
+                        # Build description from served entities if not provided
+                        if not description and served_entities:
+                            entity_names = []
+                            for e in served_entities:
+                                name = e.get('entity_name', e.get('name', 'Unknown'))
+                                if e.get('is_foundation_model'):
+                                    name = f"{name} (Foundation Model)"
+                                entity_names.append(name)
+                            description = f"Serving: {', '.join(entity_names)}"
+                    
+                    # Fallback to old served_models API for backward compatibility
+                    elif hasattr(endpoint.config, 'served_models') and endpoint.config.served_models:
                         model_names = [m.model_name for m in endpoint.config.served_models if hasattr(m, 'model_name')]
                         if model_names:
                             description = f"Serving models: {', '.join(model_names)}"
