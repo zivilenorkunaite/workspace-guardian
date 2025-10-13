@@ -100,7 +100,7 @@ def initialize_migrations() -> None:
     global _migrations_initialized
     
     if _migrations_initialized:
-        logger.info("Migrations already initialized, skipping...")
+        logger.info("⏭️  Migrations already attempted this session, skipping...")
         return
     
     try:
@@ -112,8 +112,6 @@ def initialize_migrations() -> None:
         migration_manager = MigrationManager(executor)
         migration_manager.run_migrations()
         
-        _migrations_initialized = True
-        
         logger.info("=" * 70)
         logger.info("✅ Database migrations completed successfully")
         logger.info("=" * 70)
@@ -121,6 +119,11 @@ def initialize_migrations() -> None:
     except Exception as e:
         logger.error(f"❌ Database migration failed: {e}")
         raise
+    finally:
+        # Always mark as initialized (even on failure) to prevent retry spam
+        # This is safe because migrations are idempotent and will be checked again on next app start
+        _migrations_initialized = True
+        logger.debug("Migration initialization attempt recorded")
 
 
 def reset_singletons() -> None:

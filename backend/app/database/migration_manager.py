@@ -58,6 +58,15 @@ class MigrationManager:
             migrations = get_migrations(self.catalog, self.schema)
             validate_migrations(migrations)
             
+            # Early exit: Check if all migrations are already applied
+            pending_migrations = [m for m in migrations if m['version'] not in applied]
+            if not pending_migrations:
+                logger.info(f"✅ All {len(migrations)} migration(s) already applied - nothing to do")
+                logger.info("=" * 70)
+                logger.info("✅ Migration system completed (no changes needed)")
+                logger.info("=" * 70)
+                return
+            
             # Step 5: Apply pending migrations
             self._apply_migrations(migrations, applied, migrations_table)
             
