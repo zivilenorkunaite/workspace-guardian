@@ -4,6 +4,8 @@ import logging
 from typing import List, Dict, Any, Optional
 from databricks.sdk import WorkspaceClient
 
+from ..config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,9 +21,9 @@ class DatabricksClient:
             self.client = WorkspaceClient()
             logger.info("Using Databricks App authentication")
         else:
-            # Local development - explicit credentials
-            host = os.getenv("DATABRICKS_HOST")
-            token = os.getenv("DATABRICKS_TOKEN")
+            # Local development - explicit credentials from settings (loaded from .env)
+            host = settings.databricks_host
+            token = settings.databricks_token
             
             if not host or not token:
                 raise Exception("Local development requires DATABRICKS_HOST and DATABRICKS_TOKEN. For Databricks App deployment, these are not needed.")
