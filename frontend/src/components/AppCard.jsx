@@ -1,7 +1,7 @@
 import React from 'react'
 import { 
   Package, CheckCircle, XCircle, Clock, 
-  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database, FileText 
+  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database, FileText, Zap 
 } from 'lucide-react'
 import { format, isPast, isValid, parseISO } from 'date-fns'
 import '../styles/AppCard.css'
@@ -94,6 +94,12 @@ function AppCard({ app, onApprove, onRevoke }) {
           <span className="app-type-badge">
             {getTypeLabel()}
           </span>
+          {app.is_foundation_model && (
+            <span className="foundation-model-badge">
+              <Zap size={14} />
+              Foundation Model
+            </span>
+          )}
         </div>
         <div className={`app-state ${getStateClass()}`}>
           {app.state}

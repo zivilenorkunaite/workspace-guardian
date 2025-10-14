@@ -163,7 +163,8 @@ class DatabricksClient:
                         if not description and served_entities:
                             entity_names = []
                             for e in served_entities:
-                                name = e.get('entity_name', e.get('name', 'Unknown'))
+                                # Use 'or' to handle None values properly
+                                name = e.get('entity_name') or e.get('name') or 'Unknown'
                                 if e.get('is_foundation_model'):
                                     name = f"{name} (Foundation Model)"
                                 entity_names.append(name)
@@ -184,7 +185,8 @@ class DatabricksClient:
                     "description": description,
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
-                    "type": "serving_endpoint"
+                    "type": "serving_endpoint",
+                    "is_foundation_model": is_foundation_model
                 })
         except Exception as e:
             logger.error(f"Error listing Model Serving Endpoints: {e}", exc_info=True)

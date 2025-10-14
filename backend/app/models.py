@@ -26,6 +26,7 @@ class DatabricksResource(BaseModel):
     expiration_date: Optional[str] = None
     justification: Optional[str] = None
     description: Optional[str] = None
+    is_foundation_model: bool = False
 
 
 class ResourcesResponse(BaseModel):
