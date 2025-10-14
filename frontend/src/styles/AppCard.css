@@ -58,7 +58,8 @@
   margin: 0;
   word-break: break-word;
   flex: 1 1 auto;
-  min-width: 200px;
+  flex-basis: 100%;
+  min-width: 0;
   max-width: 100%;
 }
 
