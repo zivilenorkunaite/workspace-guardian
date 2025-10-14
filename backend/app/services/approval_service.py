@@ -57,11 +57,21 @@ class ApprovalService:
         
         for resource_data in resources_data:
             resource_id = resource_data["resource_id"]
+            is_foundation = resource_data.get("is_foundation_model", False)
             
             is_approved = False
             approval_info = approval_lookup.get(resource_id)
             
-            if approval_info:
+            # Foundation models are automatically approved
+            if is_foundation:
+                is_approved = True
+                approval_info = {
+                    "approved_by": "system",
+                    "approval_date": datetime.now(timezone.utc).isoformat(),
+                    "justification": "Automatically approved - Databricks Foundation Model",
+                    "expiration_date": None
+                }
+            elif approval_info:
                 # Verify is_approved is True and revoked_date is None
                 if approval_info.get("is_approved") and approval_info.get("revoked_date") is None:
                     is_approved = True
@@ -81,13 +91,17 @@ class ApprovalService:
                             is_approved = False
             
             # Create resource with approval info
+            # Remove approval fields from resource_data if they exist to avoid conflicts
+            base_resource_data = {k: v for k, v in resource_data.items() 
+                                   if k not in ['is_approved', 'approval_date', 'approved_by', 'expiration_date', 'justification']}
+            
             resource = DatabricksResource(
-                **resource_data,
+                **base_resource_data,
                 is_approved=is_approved,
-                approval_date=approval_info.get("approval_date") if is_approved else None,
-                approved_by=approval_info.get("approved_by") if is_approved else None,
-                expiration_date=approval_info.get("expiration_date") if is_approved else None,
-                justification=approval_info.get("justification") if is_approved else None
+                approval_date=approval_info.get("approval_date") if is_approved and approval_info else None,
+                approved_by=approval_info.get("approved_by") if is_approved and approval_info else None,
+                expiration_date=approval_info.get("expiration_date") if is_approved and approval_info else None,
+                justification=approval_info.get("justification") if is_approved and approval_info else None
             )
             resources.append(resource)
         

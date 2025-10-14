@@ -1,7 +1,7 @@
 import React from 'react'
 import { 
   Package, CheckCircle, XCircle, Clock, 
-  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database, FileText, Zap 
+  User, Calendar, Shield, ShieldOff, AlertTriangle, Server, Network, Database, FileText, Zap, Lock 
 } from 'lucide-react'
 import { format, isPast, isValid, parseISO } from 'date-fns'
 import '../styles/AppCard.css'
@@ -86,7 +86,7 @@ function AppCard({ app, onApprove, onRevoke }) {
                                 })())
 
   return (
-    <div className={`app-card ${app.is_approved ? 'approved' : 'unapproved'}`}>
+    <div className={`app-card ${app.is_approved ? (app.is_foundation_model ? 'auto-approved' : 'approved') : 'unapproved'}`}>
       <div className="app-card-header">
         <div className="app-title">
           {getIcon()}
@@ -127,17 +127,26 @@ function AppCard({ app, onApprove, onRevoke }) {
         </div>
 
         {app.is_approved ? (
-          <div className="approval-details">
+          <div className={`approval-details ${app.is_foundation_model ? 'auto-approved' : ''}`}>
             <div className="approval-header">
-              <Shield size={18} className="approval-icon" />
-              <span className="approval-label">Approved</span>
+              {app.is_foundation_model ? (
+                <>
+                  <Lock size={18} className="approval-icon" />
+                  <span className="approval-label">Auto-Approved</span>
+                </>
+              ) : (
+                <>
+                  <Shield size={18} className="approval-icon" />
+                  <span className="approval-label">Approved</span>
+                </>
+              )}
             </div>
             
             <div className="approval-info">
               {app.approved_by && (
                 <div className="info-item">
                   <User size={14} />
-                  <span>By: {app.approved_by}</span>
+                  <span>By: {app.approved_by === 'system' ? 'System (Foundation Model)' : app.approved_by}</span>
                 </div>
               )}
               {safeFormatDate(app.approval_date) && (
@@ -175,13 +184,15 @@ function AppCard({ app, onApprove, onRevoke }) {
               </div>
             )}
 
-            <button 
-              className="revoke-button"
-              onClick={() => onRevoke(app)}
-            >
-              <ShieldOff size={16} />
-              Revoke Approval
-            </button>
+            {!app.is_foundation_model && (
+              <button 
+                className="revoke-button"
+                onClick={() => onRevoke(app)}
+              >
+                <ShieldOff size={16} />
+                Revoke Approval
+              </button>
+            )}
           </div>
         ) : (
           <div className="unapproved-section">
