@@ -171,6 +171,8 @@ class DatabricksClient:
                                     'databricks-dbrx',
                                     'databricks-meta',
                                     'databricks-mistral',
+                                    'databricks-gte',      # GTE (General Text Embeddings)
+                                    'databricks-bge',      # BGE (BAAI General Embedding)
                                 ]
                                 if any(entity_name.startswith(prefix) for prefix in foundation_model_prefixes):
                                     is_foundation_model = True
