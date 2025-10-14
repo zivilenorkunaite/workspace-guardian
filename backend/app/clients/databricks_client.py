@@ -143,19 +143,39 @@ class DatabricksClient:
                     if hasattr(endpoint.config, 'served_entities') and endpoint.config.served_entities:
                         for entity in endpoint.config.served_entities:
                             entity_info = {}
+                            entity_name = None
                             if hasattr(entity, 'name'):
                                 entity_info['name'] = entity.name
+                                entity_name = entity.name
                             if hasattr(entity, 'entity_name'):
                                 entity_info['entity_name'] = entity.entity_name
+                                entity_name = entity.entity_name or entity_name
                             if hasattr(entity, 'entity_version'):
                                 entity_info['entity_version'] = entity.entity_version
                             
                             # Check if this is a foundation/external model
+                            # 1. Check if external_model attribute exists and has a value
                             if hasattr(entity, 'external_model') and entity.external_model:
                                 is_foundation_model = True
                                 entity_info['is_foundation_model'] = True
                                 if hasattr(entity.external_model, 'name'):
                                     entity_info['foundation_model_name'] = entity.external_model.name
+                            # 2. Check by naming pattern (Databricks foundation models)
+                            elif entity_name and entity_name.startswith('databricks-'):
+                                # Databricks foundation models follow pattern: databricks-{model}-{variant}
+                                # Examples: databricks-claude-*, databricks-gpt-*, databricks-llama-*, databricks-dbrx-*
+                                foundation_model_prefixes = [
+                                    'databricks-claude',
+                                    'databricks-gpt',
+                                    'databricks-llama',
+                                    'databricks-dbrx',
+                                    'databricks-meta',
+                                    'databricks-mistral',
+                                ]
+                                if any(entity_name.startswith(prefix) for prefix in foundation_model_prefixes):
+                                    is_foundation_model = True
+                                    entity_info['is_foundation_model'] = True
+                                    entity_info['foundation_model_name'] = entity_name
                             
                             served_entities.append(entity_info)
                         

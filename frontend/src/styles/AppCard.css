@@ -57,8 +57,9 @@
   color: var(--text-primary);
   margin: 0;
   word-break: break-word;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 200px;
+  max-width: 100%;
 }
 
 .app-type-badge {
