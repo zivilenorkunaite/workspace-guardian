@@ -31,13 +31,10 @@ class Settings(BaseSettings):
     def is_databricks_app(self) -> bool:
         """Check if running as Databricks App.
         
-        Databricks Apps don't require explicit DATABRICKS_HOST/TOKEN as they use
-        automatic authentication via the app's service principal identity.
+        Databricks Apps set the DATABRICKS_APP_URL environment variable.
+        Apps use automatic authentication via the app's service principal identity.
         """
-        # If we have warehouse_id but no explicit host/token, we're in a Databricks App
-        has_warehouse = bool(self.databricks_warehouse_id)
-        has_explicit_auth = bool(self.databricks_host and self.databricks_token)
-        return has_warehouse and not has_explicit_auth
+        return os.getenv("DATABRICKS_APP_URL") is not None
     
     @property
     def requires_explicit_auth(self) -> bool:
