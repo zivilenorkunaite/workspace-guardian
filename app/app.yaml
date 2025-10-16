@@ -7,13 +7,16 @@ command:
   - "8080"
 
 env:
-  # These will be set by databricks.yml bundle variables
   - name: DATABRICKS_WAREHOUSE_ID
+    value: "c2abb17a6c9e6bc0"
   - name: APP_CATALOG
+    value: "zivile"
   - name: APP_SCHEMA
+    value: "workspace_guardian"
   - name: APP_VERSION
+    value: "1.0.0"
   - name: PYTHONPATH
-    value: /workspace/workspace-guardian-app
+    value: "."
 
 # Static file serving for frontend
 static_dirs:

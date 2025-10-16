@@ -32,17 +32,3 @@ resources:
       
       # Source directory for the app
       source_code_path: ./app
-      
-      # Environment variables for the app
-      # Note: DATABRICKS_HOST and DATABRICKS_TOKEN are NOT needed
-      # Databricks Apps use automatic authentication via the app's identity
-      config:
-        env:
-          - name: DATABRICKS_WAREHOUSE_ID
-            value: ${var.warehouse_id}
-          - name: APP_CATALOG
-            value: ${var.catalog}
-          - name: APP_SCHEMA
-            value: ${var.schema}
-          - name: APP_VERSION
-            value: "1.0.0"

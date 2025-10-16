@@ -198,9 +198,7 @@ class DatabricksClient:
                         if model_names:
                             description = f"Serving models: {', '.join(model_names)}"
                 
-                # Auto-approve foundation models
-                from datetime import datetime
-                resource = {
+                resources.append({
                     "name": endpoint.name,
                     "resource_id": endpoint.id or endpoint.name,
                     "state": endpoint.state.ready.value if endpoint.state and endpoint.state.ready else "UNKNOWN",
@@ -210,16 +208,8 @@ class DatabricksClient:
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
                     "type": "serving_endpoint",
-                    "is_foundation_model": is_foundation_model,
-                    # Foundation models are automatically pre-approved
-                    "is_approved": is_foundation_model,
-                    "approved_by": "system" if is_foundation_model else None,
-                    "approval_date": datetime.now().isoformat() if is_foundation_model else None,
-                    "justification": "Automatically approved - Databricks Foundation Model" if is_foundation_model else None,
-                    "expiration_date": None
-                }
-                
-                resources.append(resource)
+                    "is_foundation_model": is_foundation_model
+                })
         except Exception as e:
             logger.error(f"Error listing Model Serving Endpoints: {e}", exc_info=True)
         
