@@ -259,7 +259,11 @@ if static_dir.exists() and (static_dir / "index.html").exists():
     # This must be last - API routes are already registered above
     @app.get("/{full_path:path}", response_class=FileResponse)
     async def serve_spa_catchall(full_path: str):
-        """Catch-all for SPA - serve index.html for all non-API routes."""
+        """Catch-all for SPA - serve index.html for all non-API, non-system routes."""
+        # Exclude Databricks system paths that must be handled by the platform
+        if full_path.startswith(('.auth/', 'api/', 'docs', 'openapi.json', 'redoc')):
+            raise HTTPException(status_code=404, detail="Not found")
+        
         return FileResponse(static_dir / "index.html")
 else:
     @app.get("/")
