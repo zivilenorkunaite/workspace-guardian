@@ -75,9 +75,15 @@ async def lifespan(app: FastAPI):
                     logger.info("📄 Serving index.html for /")
                     return FR(static_dir / "index.html")
                 
-                # Register catch-all route
+                # Register catch-all route for SPA (must exclude system endpoints)
                 @app.get("/{full_path:path}", response_class=FR)
                 async def serve_spa(full_path: str):
+                    # Exclude system/API endpoints - let FastAPI handle them
+                    if full_path.startswith(("api/", "metrics", "health", "docs", "openapi.json", "redoc")):
+                        logger.debug(f"⚠️  Skipping SPA route for system endpoint: /{full_path}")
+                        from fastapi import HTTPException
+                        raise HTTPException(status_code=404, detail="Not found")
+                    
                     logger.info(f"📄 Serving index.html for /{full_path}")
                     return FR(static_dir / "index.html")
                 
