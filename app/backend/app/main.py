@@ -254,6 +254,13 @@ if static_dir.exists() and (static_dir / "index.html").exists():
     async def serve_frontend():
         """Serve the frontend application."""
         return FileResponse(static_dir / "index.html")
+    
+    # Catch-all for any other routes (for SPA)
+    # This must be last - API routes are already registered above
+    @app.get("/{full_path:path}", response_class=FileResponse)
+    async def serve_spa_catchall(full_path: str):
+        """Catch-all for SPA - serve index.html for all non-API routes."""
+        return FileResponse(static_dir / "index.html")
 else:
     @app.get("/")
     async def api_only_root():
