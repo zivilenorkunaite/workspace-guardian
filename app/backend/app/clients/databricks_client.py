@@ -14,14 +14,19 @@ class DatabricksClient:
     
     def __init__(self):
         """Initialize Databricks client with automatic or explicit authentication."""
-        is_databricks_app = os.getenv("DATABRICKS_RUNTIME_VERSION") is not None
+        # Use settings to detect if running as Databricks App
+        # settings.is_databricks_app checks for DATABRICKS_APP_URL environment variable
+        logger.info(f"🔍 Detecting runtime environment...")
+        logger.info(f"  DATABRICKS_APP_URL: {os.getenv('DATABRICKS_APP_URL', 'NOT SET')}")
+        logger.info(f"  is_databricks_app: {settings.is_databricks_app}")
         
-        if is_databricks_app:
-            # Databricks App - automatic authentication
+        if settings.is_databricks_app:
+            # Databricks App - automatic authentication via service principal
+            logger.info("✅ Using Databricks App authentication (automatic)")
             self.client = WorkspaceClient()
-            logger.info("Using Databricks App authentication")
         else:
             # Local development - explicit credentials from settings (loaded from .env)
+            logger.info("⚙️  Using local development authentication (explicit credentials)")
             host = settings.databricks_host
             token = settings.databricks_token
             
@@ -29,7 +34,7 @@ class DatabricksClient:
                 raise Exception("Local development requires DATABRICKS_HOST and DATABRICKS_TOKEN. For Databricks App deployment, these are not needed.")
             
             self.client = WorkspaceClient(host=host, token=token)
-            logger.info(f"Using explicit credentials for host: {host}")
+            logger.info(f"✅ Connected using explicit credentials for host: {host}")
         
         self.workspace_id = self._get_current_workspace_id()
         self.workspace_name = self._get_workspace_name()
