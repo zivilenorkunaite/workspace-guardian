@@ -2,6 +2,15 @@ import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
+console.log('🔧 [API] Initializing API client')
+console.log('🔧 [API] Base URL:', API_BASE_URL)
+console.log('🔧 [API] Environment:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  MODE: import.meta.env.MODE,
+  DEV: import.meta.env.DEV,
+  PROD: import.meta.env.PROD
+})
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -9,12 +18,43 @@ const apiClient = axios.create({
   },
 })
 
-// Response interceptor for error handling
+// Request interceptor for logging
+apiClient.interceptors.request.use(
+  config => {
+    console.log(`📤 [API] ${config.method.toUpperCase()} ${config.url}`, {
+      baseURL: config.baseURL,
+      params: config.params,
+      data: config.data
+    })
+    return config
+  },
+  error => {
+    console.error('❌ [API] Request error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// Response interceptor for error handling and logging
 apiClient.interceptors.response.use(
-  response => response,
+  response => {
+    console.log(`📥 [API] ${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`, {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data
+    })
+    return response
+  },
   error => {
     const message = error.response?.data?.detail || error.message
-    console.error('API Error:', message)
+    console.error('❌ [API] Response error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: message,
+      data: error.response?.data,
+      error: error
+    })
     return Promise.reject(new Error(message))
   }
 )

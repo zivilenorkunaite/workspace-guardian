@@ -13,6 +13,8 @@ import { fetchWorkspaces, fetchApps, refreshApps } from './services/api'
 import './styles/App.css'
 
 function App() {
+  console.log('📱 [App] Component initializing...')
+  
   const [workspaces, setWorkspaces] = useState([])
   const [selectedWorkspace, setSelectedWorkspace] = useState(null)
   const [apps, setApps] = useState([])
@@ -31,6 +33,7 @@ function App() {
 
   // Load workspaces on mount
   useEffect(() => {
+    console.log('🔄 [App] Mount effect triggered - loading workspaces...')
     loadWorkspaces()
   }, [])
 
@@ -42,31 +45,45 @@ function App() {
   }, [selectedWorkspace])
 
   const loadWorkspaces = async () => {
+    console.log('🔄 [App] loadWorkspaces() called')
     try {
       setLoading(true)
       setError(null)
+      console.log('📡 [App] Fetching workspaces from API...')
       const data = await fetchWorkspaces()
+      console.log('✅ [App] Workspaces loaded:', data)
       setWorkspaces(data)
       
       // Auto-select first workspace
       if (data.length > 0) {
+        console.log('🎯 [App] Auto-selecting workspace:', data[0])
         setSelectedWorkspace(data[0])
+      } else {
+        console.warn('⚠️  [App] No workspaces available')
       }
     } catch (err) {
-      setError('Failed to load workspaces: ' + err.message)
-      console.error('Error loading workspaces:', err)
+      const errorMsg = 'Failed to load workspaces: ' + err.message
+      console.error('❌ [App] Error loading workspaces:', err)
+      console.error('❌ [App] Error details:', { message: err.message, stack: err.stack })
+      setError(errorMsg)
     } finally {
       setLoading(false)
+      console.log('✅ [App] loadWorkspaces() complete')
     }
   }
 
   const loadApps = async (workspaceId) => {
+    console.log('🔄 [App] loadApps() called with workspaceId:', workspaceId)
     try {
       setLoading(true)
       setError(null)
+      console.log('📡 [App] Fetching apps from API...')
       const data = await fetchApps(workspaceId)
+      console.log('✅ [App] API response:', data)
+      
       // API returns 'resources' field, not 'apps'
       const resources = data.resources || []
+      console.log(`📊 [App] Found ${resources.length} resources`)
       setApps(resources)
       
       // Split stats by type
@@ -74,6 +91,13 @@ function App() {
       const servingEndpoints = resources.filter(app => app.type === 'serving_endpoint')
       const vectorSearch = resources.filter(app => app.type === 'vector_search')
       const lakehousePostgres = resources.filter(app => app.type === 'postgres')
+      
+      console.log('📊 [App] Resource breakdown:', {
+        apps: databricksApps.length,
+        endpoints: servingEndpoints.length,
+        vectorSearch: vectorSearch.length,
+        postgres: lakehousePostgres.length
+      })
       
       setStats({
         apps: {
@@ -94,10 +118,13 @@ function App() {
         }
       })
     } catch (err) {
-      setError('Failed to load apps: ' + err.message)
-      console.error('Error loading apps:', err)
+      const errorMsg = 'Failed to load apps: ' + err.message
+      console.error('❌ [App] Error loading apps:', err)
+      console.error('❌ [App] Error details:', { message: err.message, stack: err.stack })
+      setError(errorMsg)
     } finally {
       setLoading(false)
+      console.log('✅ [App] loadApps() complete')
     }
   }
 
