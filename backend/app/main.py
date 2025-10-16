@@ -2,9 +2,12 @@
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from .config import settings
 from .dependencies import initialize_migrations, get_approval_service
@@ -109,6 +112,39 @@ app.include_router(health.router)
 app.include_router(workspaces.router)
 app.include_router(resources.router)
 app.include_router(approvals.router)
+
+
+# Serve static files (frontend)
+# Determine the static files directory based on runtime environment
+if settings.is_databricks_app:
+    # In Databricks Apps, frontend is at ../frontend/dist relative to backend/app
+    static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+else:
+    # In local development, frontend is at ../../frontend/dist relative to backend/app
+    static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+
+if static_dir.exists():
+    # Mount static assets (JS, CSS, etc.)
+    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+    
+    # Serve index.html for the root and catch-all routes (for client-side routing)
+    @app.get("/")
+    async def serve_frontend_root():
+        """Serve the frontend index.html for root path."""
+        return FileResponse(static_dir / "index.html")
+    
+    @app.get("/{full_path:path}")
+    async def serve_frontend_catchall(full_path: str):
+        """Serve the frontend index.html for all non-API routes (client-side routing)."""
+        # Don't catch API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # Serve index.html for all other routes (React Router will handle it)
+        return FileResponse(static_dir / "index.html")
+else:
+    logger.warning(f"⚠️ Static files directory not found: {static_dir}")
+    logger.warning("Frontend will not be available. API routes will still work.")
 
 
 # ============================================================================

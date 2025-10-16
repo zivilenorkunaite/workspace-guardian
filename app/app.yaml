@@ -18,11 +18,8 @@ env:
   - name: PYTHONPATH
     value: "."
 
-# Static file serving for frontend
-static_dirs:
-  "/": "frontend/dist"
-
 # Resource limits
+# Note: Static files are served by FastAPI, not by the platform
 resources:
   cpu: "2"
   memory: "4Gi"
