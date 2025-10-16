@@ -17,6 +17,9 @@ yarn-error.log*
 dist/
 build/
 
+# Exception: Include app deployment dist
+!app/frontend/dist/
+
 # Environment
 .env
 .env.local
@@ -32,10 +35,6 @@ build/
 # Databricks
 .databricks/
 .bundle/
-
-# App deployment directory (generated)
-app/backend/
-app/frontend/
 
 # Logs
 *.log
