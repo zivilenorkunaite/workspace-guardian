@@ -1,0 +1,26 @@
+command:
+  - uvicorn
+  - backend.app.main:app
+  - --host
+  - "0.0.0.0"
+  - --port
+  - "8080"
+
+env:
+  # These will be set by databricks.yml bundle variables
+  - name: DATABRICKS_WAREHOUSE_ID
+  - name: APP_CATALOG
+  - name: APP_SCHEMA
+  - name: APP_VERSION
+  - name: PYTHONPATH
+    value: /workspace/workspace-guardian-app
+
+# Static file serving for frontend
+static_dirs:
+  "/": "frontend/dist"
+
+# Resource limits
+resources:
+  cpu: "2"
+  memory: "4Gi"
+

@@ -12,6 +12,7 @@ variables:
   
   warehouse_id:
     description: SQL Warehouse ID for executing queries
+    default: c2abb17a6c9e6bc0
 
 targets:
   # Development target
