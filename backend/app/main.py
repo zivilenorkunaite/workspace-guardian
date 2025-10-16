@@ -48,12 +48,21 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize migrations: {e}")
         # Don't fail startup, but log the error
     
-    # Log static file availability
+    # Log static file availability and debug paths
     static_dir_path = Path(__file__).parent.parent.parent / "frontend" / "dist"
-    if static_dir_path.exists() and (static_dir_path / "index.html").exists():
-        logger.info(f"✅ Frontend available at: {static_dir_path}")
+    logger.info(f"🔍 Checking for frontend files...")
+    logger.info(f"📂 __file__ = {__file__}")
+    logger.info(f"📂 Resolved static_dir = {static_dir_path}")
+    logger.info(f"📂 Absolute path = {static_dir_path.absolute()}")
+    logger.info(f"📂 Exists? {static_dir_path.exists()}")
+    if static_dir_path.exists():
+        logger.info(f"📂 Contents: {list(static_dir_path.iterdir())}")
+        if (static_dir_path / "index.html").exists():
+            logger.info(f"✅ Frontend available at: {static_dir_path}")
+        else:
+            logger.warning(f"⚠️  index.html not found in {static_dir_path}")
     else:
-        logger.warning(f"⚠️  Frontend not found, serving API only")
+        logger.warning(f"⚠️  Static directory not found at {static_dir_path}")
     
     logger.info(f"✅ Workspace Guardian initialized successfully")
     logger.info(f"📊 Using catalog: {settings.app_catalog}.{settings.app_schema}")
@@ -246,13 +255,22 @@ async def refresh_apps_deprecated(
 static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 if static_dir.exists() and (static_dir / "index.html").exists():
-    # Mount the assets directory for JS/CSS files
-    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+    try:
+        # Mount the assets directory for JS/CSS files
+        assets_dir = static_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+            logger.info(f"✅ Mounted /assets from {assets_dir}")
+        else:
+            logger.warning(f"⚠️  Assets directory not found at {assets_dir}")
+    except Exception as e:
+        logger.error(f"❌ Failed to mount assets directory: {e}", exc_info=True)
     
     # Serve the index.html for the root path
     @app.get("/", response_class=FileResponse)
     async def serve_frontend():
         """Serve the frontend application."""
+        logger.info(f"📄 Serving root: {static_dir / 'index.html'}")
         return FileResponse(static_dir / "index.html")
     
     # Catch-all for any other routes (for SPA)
@@ -262,8 +280,10 @@ if static_dir.exists() and (static_dir / "index.html").exists():
         """Catch-all for SPA - serve index.html for all non-API, non-system routes."""
         # Exclude Databricks system paths that must be handled by the platform
         if full_path.startswith(('.auth/', 'api/', 'docs', 'openapi.json', 'redoc')):
+            logger.debug(f"⚠️  Excluding system path from catch-all: {full_path}")
             raise HTTPException(status_code=404, detail="Not found")
         
+        logger.info(f"📄 Serving SPA for path: /{full_path}")
         return FileResponse(static_dir / "index.html")
 else:
     @app.get("/")
