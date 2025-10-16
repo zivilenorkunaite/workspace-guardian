@@ -234,17 +234,28 @@ async def refresh_apps_deprecated(
 # Determine the static files directory
 static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
-if static_dir.exists():
-    logger.info(f"📁 Serving static files from: {static_dir}")
+logger.info(f"🔍 Looking for static files at: {static_dir}")
+logger.info(f"📂 Static directory exists: {static_dir.exists()}")
+
+if static_dir.exists() and (static_dir / "index.html").exists():
+    logger.info(f"✅ Serving static files from: {static_dir}")
     
     # Mount static assets (JS, CSS, etc.) - must come before catch-all
-    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+    try:
+        app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+        logger.info("✅ Mounted /assets for static files")
+    except Exception as e:
+        logger.warning(f"⚠️  Could not mount /assets: {e}")
     
     # Serve index.html for the root path
     @app.get("/", response_class=FileResponse)
     async def serve_frontend_root():
         """Serve the frontend index.html for root path."""
-        return FileResponse(static_dir / "index.html")
+        index_file = static_dir / "index.html"
+        if not index_file.exists():
+            logger.error(f"❌ index.html not found at {index_file}")
+            raise HTTPException(status_code=404, detail="Frontend not found")
+        return FileResponse(index_file)
     
     # Catch-all route for client-side routing - MUST BE LAST
     @app.get("/{full_path:path}", response_class=FileResponse)
@@ -252,7 +263,26 @@ if static_dir.exists():
         """Serve the frontend index.html for all non-API routes (client-side routing)."""
         # API routes should have already been matched by now
         # This only catches non-API routes for SPA client-side routing
-        return FileResponse(static_dir / "index.html")
+        index_file = static_dir / "index.html"
+        if not index_file.exists():
+            logger.error(f"❌ index.html not found at {index_file}")
+            raise HTTPException(status_code=404, detail="Frontend not found")
+        return FileResponse(index_file)
+    
+    logger.info("✅ Frontend routes registered")
 else:
-    logger.warning(f"⚠️  Static files directory not found: {static_dir}")
+    logger.warning(f"⚠️  Static files directory not found or incomplete: {static_dir}")
+    logger.warning(f"⚠️  index.html exists: {(static_dir / 'index.html').exists() if static_dir.exists() else False}")
     logger.warning("📱 Frontend will not be available. API routes will still work.")
+    
+    # Provide a fallback route for the root
+    @app.get("/")
+    async def root_fallback():
+        """Fallback when frontend is not available."""
+        return {
+            "status": "running",
+            "message": "Workspace Guardian API is running",
+            "frontend": "not available - static files not found",
+            "api_docs": "/docs",
+            "health": "/api/health"
+        }
