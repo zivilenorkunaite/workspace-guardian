@@ -1,82 +1,89 @@
 #!/bin/bash
+# Simple deployment script - Databricks handles the build automatically
 
 set -e
 
-echo "🚀 Deploying Workspace Guardian as Databricks App"
+echo "🚀 Deploying Workspace Guardian to Databricks Apps"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-# Step 1: Build Frontend
-echo -e "\n${BLUE}Step 1: Building Frontend${NC}"
-cd frontend
-npm install
-npm run build
-cd ..
-echo -e "${GREEN}✅ Frontend built${NC}"
+# Get current user and bundle path
+CURRENT_USER=$(databricks current-user me --output json | python3 -c "import sys, json; print(json.load(sys.stdin)['userName'])")
+BUNDLE_PATH="/Workspace/Users/${CURRENT_USER}/.bundle/workspace-guardian/dev/files"
 
-# Step 2: Prepare app directory
-echo -e "\n${BLUE}Step 2: Preparing app directory${NC}"
-rm -rf app/backend app/frontend
-mkdir -p app/backend app/frontend/dist
+echo -e "${BLUE}📦 Deployment Configuration:${NC}"
+echo "   User: ${CURRENT_USER}"
+echo "   Bundle path: ${BUNDLE_PATH}"
+echo ""
 
-# Copy backend code
-cp -r backend/app app/backend/
-cp backend/requirements.txt app/requirements.txt
-
-# Copy frontend build
-cp -r frontend/dist/* app/frontend/dist/
-
-echo -e "${GREEN}✅ App directory prepared${NC}"
-
-# Step 3: Validate bundle
-echo -e "\n${BLUE}Step 3: Validating Databricks bundle${NC}"
-databricks bundle validate --target dev
-echo -e "${GREEN}✅ Bundle validated${NC}"
-
-# Step 4: Upload to Databricks Workspace
-echo -e "\n${BLUE}Step 4: Uploading to Databricks Workspace${NC}"
-databricks bundle deploy --target dev
-echo -e "${GREEN}✅ Files uploaded to workspace${NC}"
-
-# Step 5: Deploy app to Databricks Apps
-echo -e "\n${BLUE}Step 5: Deploying app code${NC}"
-databricks apps deploy workspace-guardian-dev \
-  --source-code-path /Workspace/Users/$(databricks current-user me --output json | python3 -c "import sys, json; print(json.load(sys.stdin)['userName'])")/.bundle/workspace-guardian/dev/files/app \
-  --mode SNAPSHOT
-echo -e "${GREEN}✅ App deployed${NC}"
-
-# Step 6: Verify app status
-echo -e "\n${BLUE}Step 6: Verifying app status${NC}"
-APP_STATUS=$(databricks apps get workspace-guardian-dev --output json | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['app_status']['state'])")
-APP_URL=$(databricks apps get workspace-guardian-dev --output json | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['url'])")
-
-if [ "$APP_STATUS" = "RUNNING" ]; then
-    echo -e "${GREEN}✅ App is RUNNING${NC}"
+# Step 1: Validate bundle
+echo -e "${BLUE}Step 1: Validating Databricks bundle${NC}"
+if databricks bundle validate --target dev; then
+    echo -e "${GREEN}✅ Bundle validated${NC}"
 else
-    echo -e "${RED}⚠️  App status: $APP_STATUS${NC}"
+    echo -e "${RED}❌ Bundle validation failed${NC}"
+    exit 1
 fi
+
+# Step 2: Deploy bundle (uploads source code)
+echo -e "\n${BLUE}Step 2: Deploying bundle to workspace${NC}"
+echo -e "${YELLOW}⏳ This uploads source code to workspace...${NC}"
+if databricks bundle deploy --target dev; then
+    echo -e "${GREEN}✅ Source code uploaded${NC}"
+else
+    echo -e "${RED}❌ Bundle deployment failed${NC}"
+    exit 1
+fi
+
+# Step 3: Deploy app (Databricks builds automatically)
+echo -e "\n${BLUE}Step 3: Deploying app${NC}"
+echo -e "${YELLOW}⏳ Databricks will:${NC}"
+echo -e "${YELLOW}   1. Run npm install${NC}"
+echo -e "${YELLOW}   2. Run pip install -r requirements.txt${NC}"
+echo -e "${YELLOW}   3. Run npm run start${NC}"
+echo ""
+
+if databricks apps deploy workspace-guardian-dev \
+  --source-code-path ${BUNDLE_PATH} \
+  --mode SNAPSHOT \
+  --timeout 10m; then
+    echo -e "${GREEN}✅ App deployed successfully${NC}"
+else
+    echo -e "${RED}❌ App deployment failed${NC}"
+    exit 1
+fi
+
+# Step 4: Get app status
+echo -e "\n${BLUE}Step 4: Checking app status${NC}"
+APP_INFO=$(databricks apps get workspace-guardian-dev --output json)
+APP_STATUS=$(echo "$APP_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['app_status']['state'])")
+APP_URL=$(echo "$APP_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('url', 'N/A'))")
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${GREEN}🎉 Deployment Complete!${NC}"
+if [ "$APP_STATUS" = "RUNNING" ]; then
+    echo -e "${GREEN}🎉 Deployment Complete!${NC}"
+else
+    echo -e "${YELLOW}⚠️  Deployment complete, but app is not running yet${NC}"
+fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -e "${BLUE}📱 App URL:${NC}"
-echo "   $APP_URL"
+echo "   ${APP_URL}"
 echo ""
-echo -e "${BLUE}📊 App Status:${NC} $APP_STATUS"
+echo -e "${BLUE}📊 App Status:${NC} ${APP_STATUS}"
 echo ""
 echo -e "${BLUE}📋 Useful Commands:${NC}"
-echo "   View logs:   databricks apps logs workspace-guardian-dev"
+echo "   View logs:    databricks apps logs workspace-guardian-dev"
 echo "   Check status: databricks apps get workspace-guardian-dev"
-echo "   Stop app:    databricks apps stop workspace-guardian-dev"
-echo "   Start app:   databricks apps start workspace-guardian-dev"
+echo "   Stop app:     databricks apps stop workspace-guardian-dev"
+echo "   Start app:    databricks apps start workspace-guardian-dev"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
 

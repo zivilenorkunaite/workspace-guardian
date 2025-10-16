@@ -1,2 +1,0 @@
-"""Workspace Guardian Application Package."""
-

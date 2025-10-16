@@ -1,37 +1,50 @@
-# Databricks bundle ignore file
-# This overrides .gitignore for bundle uploads
-
-# Ignore patterns (similar to .gitignore)
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-.Python
+# Python
 venv/
-env/
-ENV/
-.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
 .env
 .env.local
 .env.*.local
+
+# Git
+.git/
+.gitignore
+
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# OS
 .DS_Store
-.databricks/
-.bundle/
-*.log
-.pytest_cache/
-.coverage
-htmlcov/
-*.egg-info/
+Thumbs.db
 
-# DO NOT ignore app deployment files (explicitly include them)
-!app/
-!app/**
-!app/backend/**
-!app/frontend/**
-!app/frontend/dist/**
+# App build artifacts (will be built on server)
+frontend/dist/
 
+# Old app directory (no longer needed)
+app/
+
+# Scripts (for local use only)
+start-frontend.sh
+start-backend.sh
+setup-*.sh
+deploy.sh

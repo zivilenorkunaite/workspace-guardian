@@ -30,5 +30,5 @@ resources:
       name: workspace-guardian-${bundle.target}
       description: Workspace Guardian - Approval system for Databricks resources
       
-      # Source directory for the app
-      source_code_path: ./app
+      # Source directory - root of project (Databricks handles build)
+      source_code_path: .
