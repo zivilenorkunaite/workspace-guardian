@@ -279,8 +279,10 @@ if static_dir.exists() and (static_dir / "index.html").exists():
     async def serve_spa_catchall(full_path: str):
         """Catch-all for SPA - serve index.html for all non-API, non-system routes."""
         # Exclude Databricks system paths that must be handled by the platform
-        if full_path.startswith(('.auth/', 'api/', 'docs', 'openapi.json', 'redoc')):
-            logger.debug(f"⚠️  Excluding system path from catch-all: {full_path}")
+        # Note: FastAPI strips leading '/' from path parameters
+        system_prefixes = ('.auth', 'api', 'docs', 'openapi.json', 'redoc', '_next', '_static')
+        if any(full_path.startswith(prefix) for prefix in system_prefixes):
+            logger.info(f"⚠️  Excluding system path from catch-all: {full_path}")
             raise HTTPException(status_code=404, detail="Not found")
         
         logger.info(f"📄 Serving SPA for path: /{full_path}")
