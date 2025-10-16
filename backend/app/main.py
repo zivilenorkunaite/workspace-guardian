@@ -48,21 +48,12 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize migrations: {e}")
         # Don't fail startup, but log the error
     
-    # Check static files (logging only - routes registered at module level)
-    static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
-    logger.info(f"🔍 Checking static files at startup...")
-    logger.info(f"📂 Static directory path: {static_dir}")
-    logger.info(f"📂 Static directory exists: {static_dir.exists()}")
-    if static_dir.exists():
-        logger.info(f"📂 Static directory contents: {list(static_dir.iterdir())}")
-        index_html = static_dir / "index.html"
-        logger.info(f"📄 index.html exists: {index_html.exists()}")
-        if index_html.exists():
-            logger.info(f"📄 index.html size: {index_html.stat().st_size} bytes")
-        else:
-            logger.warning(f"⚠️  index.html not found!")
+    # Log static file availability
+    static_dir_path = Path(__file__).parent.parent.parent / "frontend" / "dist"
+    if static_dir_path.exists() and (static_dir_path / "index.html").exists():
+        logger.info(f"✅ Frontend available at: {static_dir_path}")
     else:
-        logger.warning(f"⚠️  Static directory not found!")
+        logger.warning(f"⚠️  Frontend not found, serving API only")
     
     logger.info(f"✅ Workspace Guardian initialized successfully")
     logger.info(f"📊 Using catalog: {settings.app_catalog}.{settings.app_schema}")
@@ -264,15 +255,11 @@ async def metrics():
 
 static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
+# Register static file routes if frontend exists
+# NOTE: These execute at module import time, so no logging here (logging not configured yet)
 if static_dir.exists() and (static_dir / "index.html").exists():
-    logger.info(f"📁 Registering static file routes for: {static_dir}")
-    
     # Mount static assets (JS, CSS, images, etc.)
-    try:
-        app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
-        logger.info("✅ Mounted /assets directory")
-    except Exception as e:
-        logger.warning(f"⚠️  Could not mount /assets: {e}")
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
     
     # Serve index.html for root path
     @app.get("/", response_class=FileResponse)
@@ -292,11 +279,8 @@ if static_dir.exists() and (static_dir / "index.html").exists():
         
         # Otherwise, serve index.html for client-side routing
         return FileResponse(static_dir / "index.html")
-    
-    logger.info("✅ Static file routes registered")
 else:
-    logger.warning(f"⚠️  Frontend not found at {static_dir}, serving API only")
-    
+    # No frontend available, serve API-only response
     @app.get("/")
     async def api_root():
         """Root endpoint when frontend is not available."""
