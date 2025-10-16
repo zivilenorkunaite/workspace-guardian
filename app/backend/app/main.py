@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize migrations: {e}")
         # Don't fail startup, but log the error
     
-    # Check static files and register routes
+    # Check static files (logging only - routes registered at module level)
     static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
     logger.info(f"🔍 Checking static files at startup...")
     logger.info(f"📂 Static directory path: {static_dir}")
@@ -59,37 +59,8 @@ async def lifespan(app: FastAPI):
         logger.info(f"📄 index.html exists: {index_html.exists()}")
         if index_html.exists():
             logger.info(f"📄 index.html size: {index_html.stat().st_size} bytes")
-            
-            # Register static file serving routes
-            logger.info("📋 Registering static file routes...")
-            try:
-                # Mount static assets
-                from fastapi.staticfiles import StaticFiles as SF
-                from fastapi.responses import FileResponse as FR
-                app.mount("/assets", SF(directory=str(static_dir / "assets")), name="assets")
-                logger.info("✅ Mounted /assets directory")
-                
-                # Register root route
-                @app.get("/", response_class=FR)
-                async def serve_root():
-                    logger.info("📄 Serving index.html for /")
-                    return FR(static_dir / "index.html")
-                
-                # Register catch-all route for SPA (must exclude system endpoints)
-                @app.get("/{full_path:path}", response_class=FR)
-                async def serve_spa(full_path: str):
-                    # Exclude system/API endpoints - let FastAPI handle them
-                    if full_path.startswith(("api/", "metrics", "health", "docs", "openapi.json", "redoc")):
-                        logger.debug(f"⚠️  Skipping SPA route for system endpoint: /{full_path}")
-                        from fastapi import HTTPException
-                        raise HTTPException(status_code=404, detail="Not found")
-                    
-                    logger.info(f"📄 Serving index.html for /{full_path}")
-                    return FR(static_dir / "index.html")
-                
-                logger.info("✅ Static file routes registered successfully")
-            except Exception as e:
-                logger.error(f"❌ Failed to register static routes: {e}", exc_info=True)
+        else:
+            logger.warning(f"⚠️  index.html not found!")
     else:
         logger.warning(f"⚠️  Static directory not found!")
     
@@ -272,8 +243,66 @@ async def refresh_apps_deprecated(
 
 
 # ============================================================================
+# SYSTEM ENDPOINTS
+# ============================================================================
+# Databricks Apps expects these endpoints
+
+
+@app.get("/metrics")
+async def metrics():
+    """Metrics endpoint for Databricks Apps health checks."""
+    # Return empty prometheus metrics format
+    # In production, you could add actual metrics here
+    return ""
+
+
+# ============================================================================
 # STATIC FILE SERVING (Frontend)
 # ============================================================================
-# Note: Static routes are now registered dynamically in the lifespan handler
-# (see above) to ensure proper logging and error handling after startup.
-# This allows us to register routes conditionally based on file existence.
+# These routes MUST be registered LAST so API routes match first
+# Static file routes are registered at module level for proper route priority
+
+static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+
+if static_dir.exists() and (static_dir / "index.html").exists():
+    logger.info(f"📁 Registering static file routes for: {static_dir}")
+    
+    # Mount static assets (JS, CSS, images, etc.)
+    try:
+        app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+        logger.info("✅ Mounted /assets directory")
+    except Exception as e:
+        logger.warning(f"⚠️  Could not mount /assets: {e}")
+    
+    # Serve index.html for root path
+    @app.get("/", response_class=FileResponse)
+    async def serve_frontend_root():
+        """Serve the frontend SPA root."""
+        return FileResponse(static_dir / "index.html")
+    
+    # Catch-all for client-side routing (e.g., /dashboard, /settings)
+    # This MUST be the last route defined
+    @app.get("/{full_path:path}", response_class=FileResponse)
+    async def serve_frontend_spa(full_path: str):
+        """Serve the frontend SPA for all non-API routes."""
+        # Check if it's a static file request that wasn't caught by /assets mount
+        file_path = static_dir / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Otherwise, serve index.html for client-side routing
+        return FileResponse(static_dir / "index.html")
+    
+    logger.info("✅ Static file routes registered")
+else:
+    logger.warning(f"⚠️  Frontend not found at {static_dir}, serving API only")
+    
+    @app.get("/")
+    async def api_root():
+        """Root endpoint when frontend is not available."""
+        return {
+            "service": "Workspace Guardian API",
+            "status": "running",
+            "version": settings.app_version,
+            "api_docs": "/docs"
+        }

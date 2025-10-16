@@ -12,16 +12,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "service": "Workspace Guardian",
-        "status": "running",
-        "version": settings.app_version
-    }
-
-
 @router.get("/api/health")
 async def health_check():
     """Health check endpoint."""
