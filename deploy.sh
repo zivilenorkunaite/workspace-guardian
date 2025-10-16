@@ -38,29 +38,45 @@ echo -e "\n${BLUE}Step 3: Validating Databricks bundle${NC}"
 databricks bundle validate --target dev
 echo -e "${GREEN}✅ Bundle validated${NC}"
 
-# Step 4: Deploy
-echo -e "\n${BLUE}Step 4: Deploying to Databricks${NC}"
+# Step 4: Upload to Databricks Workspace
+echo -e "\n${BLUE}Step 4: Uploading to Databricks Workspace${NC}"
 databricks bundle deploy --target dev
-echo -e "${GREEN}✅ Bundle deployed${NC}"
+echo -e "${GREEN}✅ Files uploaded to workspace${NC}"
 
-# Step 5: Get app URL
-echo -e "\n${BLUE}Step 5: Getting app URL${NC}"
-APP_URL=$(databricks apps list | grep workspace-guardian-dev | awk '{print $NF}')
+# Step 5: Deploy app to Databricks Apps
+echo -e "\n${BLUE}Step 5: Deploying app code${NC}"
+databricks apps deploy workspace-guardian-dev \
+  --source-code-path /Workspace/Users/$(databricks current-user me --output json | python3 -c "import sys, json; print(json.load(sys.stdin)['userName'])")/.bundle/workspace-guardian/dev/files/app \
+  --mode SNAPSHOT
+echo -e "${GREEN}✅ App deployed${NC}"
+
+# Step 6: Verify app status
+echo -e "\n${BLUE}Step 6: Verifying app status${NC}"
+APP_STATUS=$(databricks apps get workspace-guardian-dev --output json | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['app_status']['state'])")
+APP_URL=$(databricks apps get workspace-guardian-dev --output json | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['url'])")
+
+if [ "$APP_STATUS" = "RUNNING" ]; then
+    echo -e "${GREEN}✅ App is RUNNING${NC}"
+else
+    echo -e "${RED}⚠️  App status: $APP_STATUS${NC}"
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${GREEN}✅ Deployment Complete!${NC}"
+echo -e "${GREEN}🎉 Deployment Complete!${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "App URL: ${APP_URL}"
+echo -e "${BLUE}📱 App URL:${NC}"
+echo "   $APP_URL"
 echo ""
-echo "To view logs:"
-echo "  databricks apps logs workspace-guardian-dev"
+echo -e "${BLUE}📊 App Status:${NC} $APP_STATUS"
 echo ""
-echo "To stop the app:"
-echo "  databricks apps stop workspace-guardian-dev"
+echo -e "${BLUE}📋 Useful Commands:${NC}"
+echo "   View logs:   databricks apps logs workspace-guardian-dev"
+echo "   Check status: databricks apps get workspace-guardian-dev"
+echo "   Stop app:    databricks apps stop workspace-guardian-dev"
+echo "   Start app:   databricks apps start workspace-guardian-dev"
 echo ""
-echo "To delete the app:"
-echo "  databricks apps delete workspace-guardian-dev"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 
