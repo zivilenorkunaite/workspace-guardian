@@ -1,10 +1,5 @@
-command:
-  - uvicorn
-  - backend.app.main:app
-  - --host
-  - "0.0.0.0"
-  - --port
-  - "8080"
+# No command specified - Databricks will auto-detect package.json and run "npm run start"
+# See: https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/deploy#deployment-logic
 
 env:
   - name: PORT
