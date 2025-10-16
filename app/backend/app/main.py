@@ -234,59 +234,33 @@ async def refresh_apps_deprecated(
 
 
 # ============================================================================
-# SYSTEM ENDPOINTS
-# ============================================================================
-# Databricks Apps expects these endpoints
-
-
-@app.get("/metrics")
-async def metrics():
-    """Metrics endpoint for Databricks Apps health checks."""
-    # Return empty prometheus metrics format
-    # In production, you could add actual metrics here
-    return ""
-
-
-# ============================================================================
 # STATIC FILE SERVING (Frontend)
 # ============================================================================
-# These routes MUST be registered LAST so API routes match first
-# Static file routes are registered at module level for proper route priority
+# Following Databricks Apps pattern: https://learn.microsoft.com/en-gb/azure/databricks/dev-tools/databricks-apps/tutorial-node
+# Key principles:
+# 1. Mount static directory for assets (JS, CSS, etc.)
+# 2. Serve index.html explicitly for root route
+# 3. No catch-all route - let 404s be 404s
+# 4. Keep it simple!
 
 static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
-# Register static file routes if frontend exists
-# NOTE: These execute at module import time, so no logging here (logging not configured yet)
 if static_dir.exists() and (static_dir / "index.html").exists():
-    # Mount static assets (JS, CSS, images, etc.)
+    # Mount the assets directory for JS/CSS files
     app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
     
-    # Serve index.html for root path
+    # Serve the index.html for the root path
     @app.get("/", response_class=FileResponse)
-    async def serve_frontend_root():
-        """Serve the frontend SPA root."""
-        return FileResponse(static_dir / "index.html")
-    
-    # Catch-all for client-side routing (e.g., /dashboard, /settings)
-    # This MUST be the last route defined
-    @app.get("/{full_path:path}", response_class=FileResponse)
-    async def serve_frontend_spa(full_path: str):
-        """Serve the frontend SPA for all non-API routes."""
-        # Check if it's a static file request that wasn't caught by /assets mount
-        file_path = static_dir / full_path
-        if file_path.is_file():
-            return FileResponse(file_path)
-        
-        # Otherwise, serve index.html for client-side routing
+    async def serve_frontend():
+        """Serve the frontend application."""
         return FileResponse(static_dir / "index.html")
 else:
-    # No frontend available, serve API-only response
     @app.get("/")
-    async def api_root():
-        """Root endpoint when frontend is not available."""
+    async def api_only_root():
+        """API-only mode when frontend is not available."""
         return {
             "service": "Workspace Guardian API",
             "status": "running",
             "version": settings.app_version,
-            "api_docs": "/docs"
+            "docs": "/docs"
         }

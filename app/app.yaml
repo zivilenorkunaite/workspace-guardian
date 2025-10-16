@@ -7,6 +7,8 @@ command:
   - "8080"
 
 env:
+  - name: PORT
+    value: "8080"
   - name: DATABRICKS_WAREHOUSE_ID
     value: "c2abb17a6c9e6bc0"
   - name: APP_CATALOG
