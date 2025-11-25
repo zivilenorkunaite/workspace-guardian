@@ -3,16 +3,16 @@ bundle:
 
 variables:
   catalog:
-    description: Unity Catalog name
-    default: zivile
+    description: Unity Catalog name (set via environment or CLI)
+    # No default - must be provided by user
   
   schema:
     description: Schema name for application tables
     default: workspace_guardian
   
   warehouse_id:
-    description: SQL Warehouse ID for executing queries
-    default: c2abb17a6c9e6bc0
+    description: SQL Warehouse ID for executing queries (get from Databricks SQL Warehouses page)
+    # No default - must be provided by user
 
 targets:
   # Development target

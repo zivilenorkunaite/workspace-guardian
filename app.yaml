@@ -1,13 +1,16 @@
 # No command specified - Databricks will auto-detect package.json and run "npm run start"
 # See: https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/deploy#deployment-logic
+#
+# IMPORTANT: Update these environment variables with your workspace-specific values
+# before deploying. These should match the values in your databricks.yml variables.
 
 env:
   - name: PORT
     value: "8080"
   - name: DATABRICKS_WAREHOUSE_ID
-    value: "c2abb17a6c9e6bc0"
+    value: "YOUR_WAREHOUSE_ID"  # Get from Databricks SQL Warehouses page
   - name: APP_CATALOG
-    value: "zivile"
+    value: "main"  # Your Unity Catalog name
   - name: APP_SCHEMA
     value: "workspace_guardian"
   - name: APP_VERSION
